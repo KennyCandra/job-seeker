@@ -11,7 +11,7 @@ const fallbackTemplate = `
 \\usepackage[utf8]{inputenc}
 \\usepackage[margin=0.7in]{geometry}
 \\usepackage{enumitem}
-\\usepackage{hyperref}
+\\usepackage[hidelinks]{hyperref}
 \\usepackage{titlesec}
 \\usepackage{xcolor}
 \\usepackage{tabularx}
