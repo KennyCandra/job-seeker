@@ -1,0 +1,18 @@
+# Application Package
+
+## Job
+- Title: Full Stack Engineer
+- Company: Northstar Labs
+- Location: Remote
+- URL: https://example.com/job/1
+
+## Resume Summary
+Self-taught full-stack engineer building TypeScript services with Node.js and PostgreSQL. Designed and deployed distributed systems on AWS ECS Fargate processing 1M+ events/hour with sub-second latency. Experienced in production-grade backend architecture, high-throughput databases, and event-driven pipelines for product teams.
+
+## Cover Letter
+I'm excited to apply for the Full Stack Engineer role at Northstar Labs. As a self-taught engineer, I bring hands-on experience building TypeScript services with Node.js and PostgreSQL that match your product team's stack directly. I recently designed and deployed distributed systems on AWS ECS Fargate that process over 1 million events per hour with sub-second latency, demonstrating production-grade backend architecture at scale. My background in high-throughput databases and event-driven pipelines means I can contribute immediately to building reliable, performant services. I'm eager to bring this experience to your team and help ship quality software. Looking forward to the opportunity to discuss how I can contribute.
+
+## Email
+Subject: Application: Full Stack Engineer at Northstar Labs
+
+I am writing to apply for the Full Stack Engineer position at Northstar Labs. I build TypeScript services with Node.js and PostgreSQL and have designed distributed systems on AWS ECS Fargate processing over 1 million events per hour with sub-second latency. My experience with production-grade backend architecture, high-throughput databases, and event-driven pipelines aligns well with your product team's needs. My resume is attached, and you can find links to my portfolio and GitHub below. I would welcome the chance to discuss how my background fits this role. Thank you for your time and consideration.

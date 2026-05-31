@@ -1,0 +1,74 @@
+
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.7in]{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{tabularx}
+
+\definecolor{sectionblue}{HTML}{1F6FB2}
+\titleformat{\section}{\large\bfseries\color{sectionblue}}{}{0em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{8pt}{4pt}
+\setlist[itemize]{leftmargin=*, noitemsep, topsep=2pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE \textbf{ Ahmed Abdelrahman }} \\[4pt]
+\href{Cairo, Egypt (UTC+3)}{Cairo, Egypt (UTC+3)} \textbar{} \href{+201024180920}{+201024180920} \textbar{} \href{ahmedabdelrhaman232@gmail.com}{ahmedabdelrhaman232@gmail.com} \textbar{} \href{https://linkedin.com/in/ahmed-abdelrahman}{https://linkedin.com/in/ahmed-abdelrahman} \textbar{} \href{https://kennycandra.dev}{https://kennycandra.dev}
+\end{center}
+
+\section{Skills}
+\begin{tabularx}{\textwidth}{X X X}
+\textbf{languages}\newline TypeScript, JavaScript, Rust, Python & \textbf{frontend}\newline React, Next.js, Tailwind CSS, Redux & \textbf{backend}\newline Node.js, Express.js, REST APIs, Event-Driven Architecture, Async Processing, Software Design \\
+\textbf{databases}\newline PostgreSQL (pgvector), MongoDB, MySQL, Redis (Caching \& Queues) & \textbf{asyncAndMessaging}\newline BullMQ, RabbitMQ, Dead-Letter Queues, Idempotent Processing, Exponential Backoff & \textbf{infrastructure}\newline AWS (ECS Fargate, ECR, RDS, ElastiCache, Lambda, SSM), Docker, GitHub Actions CI/CD, Vercel, DigitalOcean \\
+\textbf{coreCompetencies}\newline Distributed Systems, System Design, CAP Theorem, MVCC, Database Internals, Networking (HTTP/2, HTTP/3, TCP/UDP, WebSockets) & \textbf{spoken}\newline English (Professional), Arabic (Native) &   \\
+\end{tabularx}
+
+\section{Education}
+\textbf{Faculty of Pharmacy} \hfill 2024 \
+Modern University, Cairo, Egypt
+
+\section{Work Experience}
+\textbf{Vogel Edits} \\
+\textit{Full-Stack Engineer (Adobe Extensions)}\\\begin{itemize}
+\item Delivered customer-facing AI extensions for Adobe After Effects \& Premiere Pro, including Vanish BG — a real-time background removal tool — serving as the technical bridge between ML capabilities and end-user production workflows.
+\item Debugged and resolved Adobe's restricted CEP runtime limitations by designing a Node.js sidecar architecture that handles AI inference outside the sandbox, using local HTTP for IPC with real-time streaming.
+\item Built and shipped a TTS Premiere Pro extension using Node.js with local ONNX model inference, owning the full pipeline from text input to rendered timeline clip.
+\item Collaborated directly with designers and stakeholders in an async workflow, triaging customer issues and shipping production-ready tools on agile cycles.
+\end{itemize}
+
+\textbf{Freelance} \\
+\textit{Full-Stack Engineer}\\\begin{itemize}
+\item Built and integrated a full-stack tourism booking platform using Next.js, TypeScript, and Node.js — handling end-to-end implementation from customer-facing UI to backend APIs.
+\item Diagnosed and resolved production performance bottlenecks using PostgreSQL EXPLAIN ANALYZE, achieving sub-100ms API response times under concurrent load.
+\item Integrated Paymob payment gateway with idempotent transaction handling and webhook verification, reducing checkout friction by 40\% — directly analogous to enterprise third-party integrations.
+\item Optimized Core Web Vitals to 95+ Lighthouse score, improving customer experience through SSR, image optimization, and lazy loading.
+\end{itemize}
+
+\section{Projects}
+\textbf{RootCluster — AI-Powered Log Analysis Platform} \href{https://rootcluster.dev}{https://rootcluster.dev}\\
+\textit{Tech Stack:} Node.js, TypeScript, PostgreSQL (pgvector), Redis, BullMQ, ONNX, AWS ECS Fargate, Docker, GitHub Actions\\
+\begin{itemize}
+\item Designed and deployed distributed log ingestion pipeline on AWS ECS Fargate processing 1M+ events/hour with sub-second latency.
+\item Reduced ONNX embedding time from 20+ minutes to under 1 minute via batch processing, Redis caching, and worker autoscaling.
+\item Designed event-driven pipeline: normalize → embed → cluster → merge → root cause, with retries, exponential backoff, DLQs, and idempotent processing.
+\item Implemented centroid-based pgvector clustering to unify cross-service failures into single root causes.
+\item Set up full CI/CD with GitHub Actions OIDC, ECR, SSM Parameter Store, RDS PostgreSQL, and ElastiCache.
+\item Applied PostgreSQL internals (MVCC, isolation levels, indexing) to build high-throughput write pipeline avoiding lock contention.
+\item Leveraged CAP theorem tradeoffs: PostgreSQL for strong consistency, Redis for high-availability caching.
+\end{itemize}
+
+\textbf{Medical CRM — AI-Enhanced Prescription Platform}\\
+\textit{Tech Stack:} React, Node.js, PostgreSQL\\
+\begin{itemize}
+\item Built full-stack CRM handling diagnoses, prescriptions, and patient records for healthcare providers.
+\item Implemented JWT auth with access/refresh token rotation and RBAC across three permission levels.
+\item Designed drug interaction validation across 500+ medications using graph-based PostgreSQL lookup.
+\item Optimized dashboard queries for 10K+ monthly records using composite indexes and window functions.
+\end{itemize}
+
+\end{document}

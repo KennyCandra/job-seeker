@@ -1,0 +1,144 @@
+{
+  "name": "Ahmed Abdelrahman",
+  "email": "ahmedabdelrhaman232@gmail.com",
+  "phone": "+201024180920",
+  "location": "Cairo, Egypt (UTC+3)",
+  "linkedin": "https://linkedin.com/in/ahmed-abdelrahman",
+  "portfolio": "https://kennycandra.dev",
+  "summary": "Self-taught software engineer and customer-facing technical problem solver with deep expertise in Node.js, TypeScript, and AI/ML pipelines. At RootCluster, architected a distributed event pipeline processing 1M+ events/hour; at Vogel Edits, shipped customer-facing AI extensions for Adobe products. Combines hands-on full-stack engineering with a collaborative, customer-first approach — ready to serve as the technical bridge between enterprise customers and the Open.cx product. Experienced debugging complex live environments, integrating third-party APIs, and optimizing AI-driven workflows.",
+  "experience": [
+    {
+      "title": "Full-Stack Engineer (Adobe Extensions)",
+      "company": "Vogel Edits",
+      "dates": "",
+      "bullets": [
+        "Delivered customer-facing AI extensions for Adobe After Effects & Premiere Pro, including Vanish BG — a real-time background removal tool — serving as the technical bridge between ML capabilities and end-user production workflows.",
+        "Debugged and resolved Adobe's restricted CEP runtime limitations by designing a Node.js sidecar architecture that handles AI inference outside the sandbox, using local HTTP for IPC with real-time streaming.",
+        "Built and shipped a TTS Premiere Pro extension using Node.js with local ONNX model inference, owning the full pipeline from text input to rendered timeline clip.",
+        "Collaborated directly with designers and stakeholders in an async workflow, triaging customer issues and shipping production-ready tools on agile cycles."
+      ]
+    },
+    {
+      "title": "Full-Stack Engineer",
+      "company": "Freelance",
+      "dates": "",
+      "bullets": [
+        "Built and integrated a full-stack tourism booking platform using Next.js, TypeScript, and Node.js — handling end-to-end implementation from customer-facing UI to backend APIs.",
+        "Diagnosed and resolved production performance bottlenecks using PostgreSQL EXPLAIN ANALYZE, achieving sub-100ms API response times under concurrent load.",
+        "Integrated Paymob payment gateway with idempotent transaction handling and webhook verification, reducing checkout friction by 40% — directly analogous to enterprise third-party integrations.",
+        "Optimized Core Web Vitals to 95+ Lighthouse score, improving customer experience through SSR, image optimization, and lazy loading."
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "category": "languages",
+      "items": [
+        "TypeScript",
+        "JavaScript",
+        "Rust",
+        "Python"
+      ]
+    },
+    {
+      "category": "frontend",
+      "items": [
+        "React",
+        "Next.js",
+        "Tailwind CSS",
+        "Redux"
+      ]
+    },
+    {
+      "category": "backend",
+      "items": [
+        "Node.js",
+        "Express.js",
+        "REST APIs",
+        "Event-Driven Architecture",
+        "Async Processing",
+        "Software Design"
+      ]
+    },
+    {
+      "category": "databases",
+      "items": [
+        "PostgreSQL (pgvector)",
+        "MongoDB",
+        "MySQL",
+        "Redis (Caching & Queues)"
+      ]
+    },
+    {
+      "category": "asyncAndMessaging",
+      "items": [
+        "BullMQ",
+        "RabbitMQ",
+        "Dead-Letter Queues",
+        "Idempotent Processing",
+        "Exponential Backoff"
+      ]
+    },
+    {
+      "category": "infrastructure",
+      "items": [
+        "AWS (ECS Fargate, ECR, RDS, ElastiCache, Lambda, SSM)",
+        "Docker",
+        "GitHub Actions CI/CD",
+        "Vercel",
+        "DigitalOcean"
+      ]
+    },
+    {
+      "category": "coreCompetencies",
+      "items": [
+        "Distributed Systems",
+        "System Design",
+        "CAP Theorem",
+        "MVCC",
+        "Database Internals",
+        "Networking (HTTP/2, HTTP/3, TCP/UDP, WebSockets)"
+      ]
+    },
+    {
+      "category": "spoken",
+      "items": [
+        "English (Professional)",
+        "Arabic (Native)"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Faculty of Pharmacy",
+      "school": "Modern University, Cairo, Egypt",
+      "year": "2024"
+    }
+  ],
+  "projects": [
+    {
+      "name": "RootCluster — AI-Powered Log Analysis Platform",
+      "link": "https://rootcluster.dev",
+      "techStack": "Node.js, TypeScript, PostgreSQL (pgvector), Redis, BullMQ, ONNX, AWS ECS Fargate, Docker, GitHub Actions",
+      "highlights": [
+        "Designed and deployed distributed log ingestion pipeline on AWS ECS Fargate processing 1M+ events/hour with sub-second latency.",
+        "Reduced ONNX embedding time from 20+ minutes to under 1 minute via batch processing, Redis caching, and worker autoscaling.",
+        "Designed event-driven pipeline: normalize → embed → cluster → merge → root cause, with retries, exponential backoff, DLQs, and idempotent processing.",
+        "Implemented centroid-based pgvector clustering to unify cross-service failures into single root causes.",
+        "Set up full CI/CD with GitHub Actions OIDC, ECR, SSM Parameter Store, RDS PostgreSQL, and ElastiCache.",
+        "Applied PostgreSQL internals (MVCC, isolation levels, indexing) to build high-throughput write pipeline avoiding lock contention.",
+        "Leveraged CAP theorem tradeoffs: PostgreSQL for strong consistency, Redis for high-availability caching."
+      ]
+    },
+    {
+      "name": "Medical CRM — AI-Enhanced Prescription Platform",
+      "techStack": "React, Node.js, PostgreSQL",
+      "highlights": [
+        "Built full-stack CRM handling diagnoses, prescriptions, and patient records for healthcare providers.",
+        "Implemented JWT auth with access/refresh token rotation and RBAC across three permission levels.",
+        "Designed drug interaction validation across 500+ medications using graph-based PostgreSQL lookup.",
+        "Optimized dashboard queries for 10K+ monthly records using composite indexes and window functions."
+      ]
+    }
+  ]
+}
