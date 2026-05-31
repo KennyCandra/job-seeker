@@ -1,0 +1,124 @@
+{
+  "name": "Ahmed Abdelrahman",
+  "email": "ahmedabdelrhaman232@gmail.com",
+  "phone": "+201024180920",
+  "location": "Cairo, Egypt (UTC+3)",
+  "linkedin": "https://www.linkedin.com/in/ahmed-abdelrahman-89bbb3203/",
+  "portfolio": "https://kennycandra.dev",
+  "experience": [
+    {
+      "title": "Full-Stack Engineer (Adobe Extensions)",
+      "company": "Vogel Edits",
+      "dates": "2025-01 - Present",
+      "bullets": [
+        "Built and shipped production Adobe After Effects & Premiere Pro extensions, including Vanish BG — a real-time AI background removal tool running ML inference inside a sandboxed CEP environment; published on aescripts.com.",
+        "Designed a Node.js sidecar process architecture that circumvents Adobe's restricted CEP runtime by handling AI inference externally, using local HTTP for IPC and streaming results back to the React UI in real time.",
+        "Built and submitted a TTS Premiere Pro extension using Node.js with local ONNX model inference, designing the full audio pipeline from text input to rendered timeline clip.",
+        "Collaborated asynchronously with designers and stakeholders in an agile workflow, shipping production-ready tools end-to-end."
+      ]
+    },
+    {
+      "title": "Full-Stack Engineer",
+      "company": "Freelance",
+      "dates": "2024-11 - 2025-01",
+      "bullets": [
+        "Built a full-stack tourism booking platform using Next.js, TypeScript, and Node.js with TypeORM for type-safe PostgreSQL access — delivered autonomously from conception to deployment.",
+        "Applied PostgreSQL indexing strategies and EXPLAIN ANALYZE to achieve sub-100ms API response times under concurrent load.",
+        "Integrated Paymob payment gateway with idempotent transaction handling and webhook verification, reducing checkout friction by 40%.",
+        "Improved SEO and Core Web Vitals to 95+ Lighthouse score using Next.js SSR, image optimization, and lazy loading."
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "category": "languages",
+      "items": [
+        "JavaScript",
+        "TypeScript",
+        "Go"
+      ]
+    },
+    {
+      "category": "frontend",
+      "items": [
+        "React",
+        "Next.js",
+        "Tailwind CSS"
+      ]
+    },
+    {
+      "category": "backend",
+      "items": [
+        "Node.js",
+        "Express.js",
+        "REST APIs",
+        "Event-Driven Architecture"
+      ]
+    },
+    {
+      "category": "databases",
+      "items": [
+        "PostgreSQL",
+        "Redis"
+      ]
+    },
+    {
+      "category": "architecture",
+      "items": [
+        "DDD",
+        "Hexagonal Architecture",
+        "Distributed Systems",
+        "Microservices"
+      ]
+    },
+    {
+      "category": "infrastructure",
+      "items": [
+        "AWS (ECS Fargate, ECR, RDS, ElastiCache, Lambda, SSM)",
+        "Docker",
+        "GitHub Actions CI/CD"
+      ]
+    },
+    {
+      "category": "methodologies",
+      "items": [
+        "Agile",
+        "Product-Oriented Thinking",
+        "AI-Driven Engineering",
+        "CI/CD",
+        "Automated Testing"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "",
+      "school": "Self-Taught Software Engineer",
+      "year": ""
+    }
+  ],
+  "projects": [
+    {
+      "name": "RootCluster — AI-Powered Log Analysis Platform",
+      "link": "https://rootcluster.dev",
+      "description": "Distributed log ingestion and root-cause analysis platform processing 1M+ events/hour with sub-second latency.",
+      "techStack": "TypeScript, Node.js, PostgreSQL, Redis, AWS ECS Fargate, Docker, BullMQ",
+      "highlights": [
+        "Designed and deployed event-driven microservices pipeline on AWS ECS Fargate: normalize → embed → cluster → merge → root cause, with retries, exponential backoff, DLQs, and idempotent processing.",
+        "Reduced ONNX embedding time from 20+ minutes to under 1 minute via batch processing, Redis caching, and worker autoscaling.",
+        "Built full CI/CD pipeline with GitHub Actions OIDC, ECR, SSM Parameter Store, RDS PostgreSQL, and ElastiCache.",
+        "Applied CAP theorem tradeoffs — PostgreSQL for strong consistency, Redis for high-availability caching — and PostgreSQL internals (MVCC, isolation levels, indexing) for a high-throughput write pipeline."
+      ]
+    },
+    {
+      "name": "Medical CRM — AI-Enhanced Prescription Platform",
+      "description": "Full-stack CRM handling diagnoses, prescriptions, and patient records with drug interaction validation across 500+ medications.",
+      "techStack": "React, Node.js, PostgreSQL, JWT, RBAC",
+      "highlights": [
+        "Built full-stack SPA with React and Node.js implementing JWT auth with access/refresh token rotation and RBAC across three permission levels.",
+        "Designed graph-based drug interaction lookup in PostgreSQL for sub-100ms validation across 500+ medications.",
+        "Optimized dashboard queries for 10K+ monthly records using composite indexes and window functions."
+      ]
+    }
+  ]
+}

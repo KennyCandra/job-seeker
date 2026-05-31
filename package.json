@@ -1,18 +1,20 @@
 {
   "name": "cv-autopilot",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "dependencies": {
     "@types/express": "^5.0.6",
-    "csv-parse": "^6.2.1",
+    "chromium-bidi": "^16.0.1",
     "express": "^5.2.1",
     "grammy": "^1.43.0",
     "node-latex": "^3.1.0",
+    "playwright": "^1.52.0",
     "zod": "^4.4.3"
   },
   "private": true,
   "scripts": {
     "dev": "bun --watch app/src/main.ts",
-    "start": "bun app/src/main.ts"
+    "start": "bun app/src/main.ts",
+    "postinstall": "playwright install chromium"
   },
   "type": "module"
 }

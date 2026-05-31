@@ -1,0 +1,34 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.7in]{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{tabularx}
+
+\definecolor{sectionblue}{HTML}{1F6FB2}
+\titleformat{\section}{\large\bfseries\color{sectionblue}}{}{0em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{8pt}{4pt}
+\setlist[itemize]{leftmargin=*, noitemsep, topsep=2pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE \textbf{ {{{name}}} }} \\[4pt]
+{{{contact}}}
+\end{center}
+
+\section{Skills}
+{{{skills}}}
+
+\section{Education}
+{{{education}}}
+
+\section{Work Experience}
+{{{experience}}}
+
+{{{projectsSection}}}
+
+\end{document}

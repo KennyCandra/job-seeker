@@ -3,6 +3,7 @@ You are generating resume content as structured JSON and LaTeX-friendly text.
 Personal data (name, email, phone, location, links) is provided in the input — use it exactly as given, do not modify.
 
 # Generation Rules
+
 - Never leave [FILL] placeholders in output
 - Tailor summary and bullets to the job title and company
 - Use full URLs with scheme for links
@@ -10,12 +11,14 @@ Personal data (name, email, phone, location, links) is provided in the input —
 ## Experience
 
 ### Full-Stack Engineer (Adobe Extensions) | Vogel Edits | 01/2025 - Present
+
 - Built and shipped production Adobe After Effects & Premiere Pro extensions, including Vanish BG — a real-time AI background removal tool available at aescripts.com, running ML inference inside a sandboxed CEP environment.
 - Solved Adobe's restricted CEP runtime limitations by designing a Node.js sidecar process architecture that handles AI inference outside the sandbox, using local HTTP for IPC and streaming results back to the React UI in real time.
 - Built and submitted a TTS Premiere Pro extension using Node.js with local ONNX model inference, designing the full audio pipeline from text input to rendered timeline clip.
 - Collaborated asynchronously with designers and stakeholders, shipping production-ready tools using agile workflows.
 
 ### Full-Stack Engineer | Freelance | 11/2024 - 01/2025
+
 - Built a full-stack tourism booking platform using Next.js, TypeScript, and Node.js with TypeORM for type-safe PostgreSQL access.
 - Applied PostgreSQL indexing strategies and EXPLAIN ANALYZE to achieve sub-100ms API response times under concurrent load.
 - Integrated Paymob payment gateway with idempotent transaction handling and webhook verification, reducing checkout friction by 40%.
@@ -24,6 +27,7 @@ Personal data (name, email, phone, location, links) is provided in the input —
 ## Project Highlights
 
 ### RootCluster — AI-Powered Log Analysis Platform | rootcluster.dev
+
 - **Tech:** Node.js, TypeScript, PostgreSQL (pgvector), Redis, BullMQ, ONNX, AWS ECS Fargate, Docker, GitHub Actions
 - **Skills Used:** TypeScript, Node.js, PostgreSQL, Redis, AWS, Docker, BullMQ
 - Designed and deployed distributed log ingestion pipeline on AWS ECS Fargate processing 1M+ events/hour with sub-second latency.
@@ -35,6 +39,7 @@ Personal data (name, email, phone, location, links) is provided in the input —
 - Leveraged CAP theorem tradeoffs: PostgreSQL for strong consistency, Redis for high-availability caching.
 
 ### Medical CRM — AI-Enhanced Prescription Platform
+
 - **Tech:** React, Node.js, PostgreSQL
 - **Skills Used:** React, Node.js, PostgreSQL, JWT, RBAC
 - Built full-stack CRM handling diagnoses, prescriptions, and patient records.
@@ -45,28 +50,35 @@ Personal data (name, email, phone, location, links) is provided in the input —
 ## Skills
 
 ### Languages
+
 TypeScript, Rust, Python
 
 ### Frontend
+
 React, Next.js, Tailwind CSS,
 
 ### Backend
+
 Node.js, Express.js, REST APIs, Event-Driven Architecture, Async Processing
 
 ### Databases
+
 PostgreSQL, MongoDB, Redis
 
 ### Async & Messaging
+
 BullMQ, Dead-Letter Queues, Idempotent Processing
 
 ### Infrastructure
-AWS (ECS Fargate, ECR, RDS, ElastiCache, Lambda, SSM), Docker, GitHub Actions CI/CD, Vercel, DigitalOcean
+
+Docker, GitHub Actions CI/CD, Vercel, DigitalOcean
 
 ### Core Competencies
+
 Distributed Systems, System Design, CAP Theorem, MVCC, Database Internals, Networking (HTTP/2, HTTP/3, TCP/UDP, WebSockets)
 
-
 ## Education
+
 - **Degree:** Faculty of Pharmacy
 - **School:** Modern University, Cairo, Egypt
 - **Year:** 2024
