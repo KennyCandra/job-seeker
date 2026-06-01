@@ -9,23 +9,23 @@
     {
       "title": "Full-Stack Engineer (Adobe Extensions)",
       "company": "Vogel Edits",
-      "dates": "2025-01 - Present",
+      "dates": "01/2025 - Present",
       "bullets": [
-        "Built and shipped production Adobe After Effects and Premiere Pro extensions, including Vanish BG, a real-time AI background removal tool available at https://aescripts.com with ML inference running inside a sandboxed CEP environment.",
-        "Designed a Node.js sidecar process architecture to bypass CEP runtime limitations, handling AI inference outside the sandbox and streaming results back to a React UI in real time over local HTTP IPC.",
-        "Built and submitted a Premiere Pro TTS extension using Node.js with local ONNX model inference, designing the audio pipeline from text input to a rendered timeline clip.",
-        "Collaborated asynchronously with designers and stakeholders, shipping production-ready tools using agile workflows."
+        "Shipped production <<React>> Adobe After Effects & Premiere Pro extensions, including Vanish BG (real-time AI background removal) running ML inference inside a sandboxed CEP environment and distributed via aescripts.com.",
+        "Designed a <<Node.js>> sidecar architecture to bypass CEP runtime limitations, using local HTTP IPC and streaming inference results back to the UI in real time.",
+        "Built a Premiere Pro TTS extension with local <<ONNX>> inference, delivering an end-to-end pipeline from text input to rendered timeline audio clips.",
+        "Collaborated asynchronously with designers and stakeholders using agile workflows to deliver production-ready tools."
       ]
     },
     {
       "title": "Full-Stack Engineer",
       "company": "Freelance",
-      "dates": "2024-11 - 2025-01",
+      "dates": "11/2024 - 01/2025",
       "bullets": [
-        "Built a full-stack tourism booking platform using Next.js, TypeScript, and Node.js with TypeORM for type-safe PostgreSQL access.",
-        "Applied PostgreSQL indexing strategies and EXPLAIN ANALYZE to achieve sub-100ms API response times under concurrent load.",
-        "Integrated Paymob payment gateway with idempotent transaction handling and webhook verification, reducing checkout friction by 40%.",
-        "Improved SEO and Core Web Vitals to 95+ Lighthouse score using Next.js SSR, image optimization, and lazy loading."
+        "Built a full-stack tourism booking platform with <<Next.js>> and <<TypeScript>>, implementing a <<Node.js>> API with type-safe <<PostgreSQL>> access via <<TypeORM>>.",
+        "Drove API performance using <<PostgreSQL>> indexing and <<EXPLAIN ANALYZE>>, achieving sub-100ms response times under concurrent load.",
+        "Integrated Paymob payments with <<idempotent>> transaction handling and webhook verification, reducing checkout friction by 40%.",
+        "Improved SEO and Core Web Vitals to 95+ Lighthouse via <<Next.js SSR>>, image optimization, and lazy loading."
       ]
     }
   ],
@@ -52,15 +52,17 @@
         "Express.js",
         "REST APIs",
         "Event-Driven Architecture",
-        "Async Processing"
+        "Async Processing",
+        "JWT",
+        "RBAC"
       ]
     },
     {
       "category": "Databases",
       "items": [
         "PostgreSQL",
-        "MongoDB",
-        "Redis"
+        "Redis",
+        "MongoDB"
       ]
     },
     {
@@ -76,6 +78,7 @@
       "items": [
         "Docker",
         "GitHub Actions CI/CD",
+        "AWS ECS Fargate",
         "Vercel",
         "DigitalOcean"
       ]
@@ -83,33 +86,58 @@
   ],
   "education": [
     {
-      "degree": "Faculty of Pharmacy",
-      "school": "Modern University",
+      "degree": "Meta Certified Frontend Developer",
+      "school": "Meta",
       "year": "2024"
+    },
+    {
+      "degree": "Complete SQL Databases Bootcamp: Zero to Mastery",
+      "school": "Udemy",
+      "year": ""
+    },
+    {
+      "degree": "Master the Coding Interview: Data Structures & Algorithms",
+      "school": "Udemy",
+      "year": ""
+    },
+    {
+      "degree": "Node.js: The Complete Guide",
+      "school": "Udemy",
+      "year": ""
+    },
+    {
+      "degree": "Grokking Algorithms",
+      "school": "Aditya Bhargava",
+      "year": ""
+    },
+    {
+      "degree": "Designing Data-Intensive Applications",
+      "school": "Martin Kleppmann",
+      "year": ""
     }
   ],
   "projects": [
+    {
+      "name": "Medical CRM — AI-Enhanced Prescription Platform",
+      "techStack": "React, Node.js, PostgreSQL",
+      "highlights": [
+        "Built a full-stack CRM for diagnoses, prescriptions, and patient records using <<React>>, <<Node.js>>, and <<PostgreSQL>>.",
+        "Implemented secure auth with <<JWT>> access/refresh token rotation and <<RBAC>> across three permission levels.",
+        "Designed drug interaction validation across 500+ medications using graph-based <<PostgreSQL>> lookups.",
+        "Optimized dashboard queries for 10K+ monthly records using composite indexes and window functions."
+      ]
+    },
     {
       "name": "RootCluster — AI-Powered Log Analysis Platform",
       "link": "https://rootcluster.dev",
       "techStack": "Node.js, TypeScript, PostgreSQL (pgvector), Redis, BullMQ, ONNX, AWS ECS Fargate, Docker, GitHub Actions",
       "highlights": [
-        "Designed and deployed a distributed log ingestion pipeline on AWS ECS Fargate processing 1M+ events/hour with sub-second latency.",
-        "Reduced ONNX embedding time from 20+ minutes to under 1 minute via batch processing, Redis caching, and worker autoscaling.",
-        "Designed an event-driven pipeline (normalize, embed, cluster, merge, root cause) with retries, exponential backoff, dead-letter queues, and idempotent processing.",
-        "Implemented centroid-based pgvector clustering to unify cross-service failures into single root causes.",
-        "Set up CI/CD with GitHub Actions OIDC, ECR, SSM Parameter Store, RDS PostgreSQL, and ElastiCache.",
-        "Applied PostgreSQL internals (MVCC, isolation levels, indexing) to build a high-throughput write pipeline while avoiding lock contention."
-      ]
-    },
-    {
-      "name": "Medical CRM — AI-Enhanced Prescription Platform",
-      "techStack": "React, Node.js, PostgreSQL, JWT, RBAC",
-      "highlights": [
-        "Built a full-stack CRM handling diagnoses, prescriptions, and patient records.",
-        "Implemented JWT auth with access/refresh token rotation and RBAC across three permission levels.",
-        "Designed drug interaction validation across 500+ medications using a graph-based PostgreSQL lookup.",
-        "Optimized dashboard queries for 10K+ monthly records using composite indexes and window functions."
+        "Designed and deployed a distributed, <<event-driven>> log ingestion pipeline on <<AWS ECS Fargate>> using <<BullMQ>> and <<Redis>>, with <<PostgreSQL (pgvector)>> similarity search, processing 1M+ events/hour with sub-second latency.",
+        "Implemented robust <<async processing>> with producer-consumer queues, configurable worker concurrency, and priority queues for urgent events vs. backfills.",
+        "Built <<dead-letter queues>> with retry policies (exponential backoff, max attempts) to isolate malformed entries without blocking the pipeline.",
+        "Designed <<idempotent>> processing using Redis dedup keys and at-least-once delivery semantics via job completion callbacks.",
+        "Reduced <<ONNX>> embedding time from 20+ minutes to under 1 minute via batch processing, Redis caching, and worker autoscaling.",
+        "Set up CI/CD using <<GitHub Actions>> with OIDC, Docker image publishing, and AWS integration for secrets and deployments."
       ]
     }
   ]

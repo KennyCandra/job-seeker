@@ -36,6 +36,6 @@ export const resumeSchema = z.object({
   portfolio: z.string().optional(),
   experience: z.array(experienceItem),
   skills: z.union([z.array(z.string()), z.array(skillCategory)]),
-  education: z.array(educationItem),
+  education: z.array(educationItem).optional().default([]),
   projects: z.array(projectItem).optional(),
 });

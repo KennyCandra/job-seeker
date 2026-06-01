@@ -60,48 +60,48 @@
 % ─── Skills ────────────────────────────────────────────
 \section{Technical Skills}
 \begin{tabularx}{\textwidth}{X X X}
-\textbf{Languages}\newline TypeScript, Python & \textbf{Frontend}\newline React, Next.js, Tailwind CSS & \textbf{Backend}\newline Node.js, Express.js, REST APIs, Event-Driven Architecture, Async Processing, JWT, RBAC \\[4pt]
-\textbf{Databases}\newline PostgreSQL, Redis, MongoDB & \textbf{Async \& Messaging}\newline BullMQ, Dead-Letter Queues, Idempotent Processing & \textbf{Infrastructure}\newline Docker, GitHub Actions CI/CD, AWS ECS Fargate, Vercel, DigitalOcean \\[4pt]
+\textbf{Languages}\newline TypeScript, Python & \textbf{Frontend}\newline React, Next.js, Tailwind CSS & \textbf{Backend}\newline Node.js, Express.js, REST APIs, Event-Driven Architecture, Async Processing \\[4pt]
+\textbf{Databases}\newline PostgreSQL, Redis, MongoDB & \textbf{Async \& Messaging}\newline BullMQ, Dead-Letter Queues, Idempotent Processing & \textbf{Infrastructure}\newline AWS, Docker, GitHub Actions CI/CD, Vercel, DigitalOcean \\[4pt]
 \end{tabularx}
 
 % ─── Experience ────────────────────────────────────────
 \section{Work Experience}
 \textbf{Vogel Edits} \hfill {\small\textcolor{subtle}{01/2025 - Present}} \\
 {\textit{\textcolor{subtle}{Full-Stack Engineer (Adobe Extensions)}}}\\\begin{itemize}
-\item Shipped production \textbf{React} Adobe After Effects \& Premiere Pro extensions, including Vanish BG (real-time AI background removal) running ML inference inside a sandboxed CEP environment and distributed via aescripts.com.
-\item Designed a \textbf{Node.js} sidecar architecture to bypass CEP runtime limitations, using local HTTP IPC and streaming inference results back to the UI in real time.
-\item Built a Premiere Pro TTS extension with local \textbf{ONNX} inference, delivering an end-to-end pipeline from text input to rendered timeline audio clips.
-\item Collaborated asynchronously with designers and stakeholders using agile workflows to deliver production-ready tools.
+\item Shipped production Adobe After Effects \& Premiere Pro extensions with \textbf{React} UI and \textbf{Node.js} tooling, including Vanish BG (real-time AI background removal) published on https://aescripts.com.
+\item Designed a \textbf{Node.js} sidecar architecture to bypass Adobe CEP sandbox limits, using local HTTP IPC to stream inference outputs to the UI in real time.
+\item Implemented local model inference workflows (\textbf{ONNX}) and integrated them into user-facing editing pipelines with low-latency feedback loops.
+\item Collaborated asynchronously with designers and stakeholders, delivering production-ready features with clear ownership and iterative releases.
 \end{itemize}
 
 \textbf{Freelance} \hfill {\small\textcolor{subtle}{11/2024 - 01/2025}} \\
 {\textit{\textcolor{subtle}{Full-Stack Engineer}}}\\\begin{itemize}
-\item Built a full-stack tourism booking platform with \textbf{Next.js} and \textbf{TypeScript}, implementing a \textbf{Node.js} API with type-safe \textbf{PostgreSQL} access via \textbf{TypeORM}.
-\item Drove API performance using \textbf{PostgreSQL} indexing and \textbf{EXPLAIN ANALYZE}, achieving sub-100ms response times under concurrent load.
-\item Integrated Paymob payments with \textbf{idempotent} transaction handling and webhook verification, reducing checkout friction by 40\%.
-\item Improved SEO and Core Web Vitals to 95+ Lighthouse via \textbf{Next.js SSR}, image optimization, and lazy loading.
+\item Built a full-stack tourism booking platform using \textbf{Next.js}, \textbf{TypeScript}, and \textbf{Node.js} with type-safe \textbf{PostgreSQL} access via TypeORM.
+\item Improved backend performance using \textbf{PostgreSQL} indexing and \textbf{EXPLAIN ANALYZE}, achieving sub-100ms API response times under concurrent load.
+\item Integrated Paymob payments with \textbf{idempotent} transaction handling and secure webhook verification, reducing checkout friction by 40\%.
+\item Raised SEO and Core Web Vitals to 95+ Lighthouse via \textbf{Next.js} SSR, image optimization, and lazy loading.
 \end{itemize}
 
 % ─── Projects ──────────────────────────────────────────
 \section{Projects}
-\textbf{Medical CRM — AI-Enhanced Prescription Platform}\\
-\textit{Tech Stack:} React, Node.js, PostgreSQL\\
-\begin{itemize}
-\item Built a full-stack CRM for diagnoses, prescriptions, and patient records using \textbf{React}, \textbf{Node.js}, and \textbf{PostgreSQL}.
-\item Implemented secure auth with \textbf{JWT} access/refresh token rotation and \textbf{RBAC} across three permission levels.
-\item Designed drug interaction validation across 500+ medications using graph-based \textbf{PostgreSQL} lookups.
-\item Optimized dashboard queries for 10K+ monthly records using composite indexes and window functions.
-\end{itemize}
-
 \textbf{RootCluster — AI-Powered Log Analysis Platform} \href{https://rootcluster.dev}{https://rootcluster.dev}\\
 \textit{Tech Stack:} Node.js, TypeScript, PostgreSQL (pgvector), Redis, BullMQ, ONNX, AWS ECS Fargate, Docker, GitHub Actions\\
 \begin{itemize}
-\item Designed and deployed a distributed, \textbf{event-driven} log ingestion pipeline on \textbf{AWS ECS Fargate} using \textbf{BullMQ} and \textbf{Redis}, with \textbf{PostgreSQL (pgvector)} similarity search, processing 1M+ events/hour with sub-second latency.
-\item Implemented robust \textbf{async processing} with producer-consumer queues, configurable worker concurrency, and priority queues for urgent events vs. backfills.
-\item Built \textbf{dead-letter queues} with retry policies (exponential backoff, max attempts) to isolate malformed entries without blocking the pipeline.
-\item Designed \textbf{idempotent} processing using Redis dedup keys and at-least-once delivery semantics via job completion callbacks.
-\item Reduced \textbf{ONNX} embedding time from 20+ minutes to under 1 minute via batch processing, Redis caching, and worker autoscaling.
-\item Set up CI/CD using \textbf{GitHub Actions} with OIDC, Docker image publishing, and AWS integration for secrets and deployments.
+\item Designed and deployed a distributed, \textbf{event-driven} ingestion pipeline on \textbf{AWS ECS Fargate} using \textbf{BullMQ} for job queuing, \textbf{Redis} for caching/rate limiting, and \textbf{PostgreSQL} (\textbf{pgvector}) for similarity search, processing 1M+ events/hour with sub-second latency.
+\item Implemented robust \textbf{async processing} patterns: producer-consumer queues, worker pools with configurable concurrency, and priority routing for urgent vs. backfill workloads.
+\item Built \textbf{dead-letter queues} with retry policies (exponential backoff, max attempts) to isolate malformed events without blocking the pipeline.
+\item Designed \textbf{idempotent} processing with Redis-backed dedup keys and at-least-once delivery semantics via job completion callbacks.
+\item Reduced \textbf{ONNX} embedding time from 20+ minutes to under 1 minute via batching, caching, and worker autoscaling.
+\item Delivered CI/CD using \textbf{GitHub Actions} with AWS OIDC to ECR, plus RDS PostgreSQL, ElastiCache, SSM Parameter Store, and automated deployments.
+\end{itemize}
+
+\textbf{Medical CRM — AI-Enhanced Prescription Platform}\\
+\textit{Tech Stack:} React, Node.js, PostgreSQL\\
+\begin{itemize}
+\item Built a full-stack CRM for diagnoses, prescriptions, and patient records with \textbf{React} and \textbf{Node.js} backed by \textbf{PostgreSQL}.
+\item Implemented secure authentication with \textbf{JWT} access/refresh token rotation and \textbf{RBAC} across three permission levels.
+\item Designed drug interaction validation across 500+ medications using graph-based \textbf{PostgreSQL} lookups.
+\item Optimized dashboard queries for 10K+ monthly records using composite indexes and window functions.
 \end{itemize}
 
 \section{Coursework}

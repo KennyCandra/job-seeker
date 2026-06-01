@@ -45,12 +45,6 @@ function shortlistText(results: Array<{ job: JobRecord; filter: FilterResult }>)
 function startBot() {
   if (!bot) return;
 
-  const recent = getRecentJobs();
-  for (const j of recent) {
-    lastShortlist.push({ job: j, filter: { verdict: "accept", score: 100, reasons: ["Previous job"], must_have_hits: [], missing: [] } });
-  }
-  if (recent.length > 0) console.log(`Loaded ${recent.length} recent jobs into shortlist`);
-
   bot.catch((err) => {
     console.error("Bot error:", err.error);
     console.error("Error context:", JSON.stringify(err.ctx?.update?.message?.text));

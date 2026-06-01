@@ -2,42 +2,50 @@ import latex from "node-latex";
 import { mkdirSync, createWriteStream, writeFileSync, existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 
-const APP_ROOT = join(import.meta.dir, "..");
+const APP_ROOT = join(import.meta.dir, "..", "..", "..");
 const TEMPLATE_PATH = join(APP_ROOT, "templates", "resume.tex");
 
 const fallbackTemplate = `
-\\documentclass[11pt]{article}
+\\documentclass[10pt, a4paper]{article}
 \\usepackage[T1]{fontenc}
 \\usepackage[utf8]{inputenc}
-\\usepackage[margin=0.7in]{geometry}
+\\usepackage{lmodern}
+\\usepackage[margin=0.6in, top=0.5in, bottom=0.5in]{geometry}
 \\usepackage{enumitem}
 \\usepackage[hidelinks]{hyperref}
 \\usepackage{titlesec}
 \\usepackage{xcolor}
 \\usepackage{tabularx}
+\\usepackage{parskip}
 
-\\definecolor{sectionblue}{HTML}{1F6FB2}
-\\titleformat{\\section}{\\large\\bfseries\\color{sectionblue}}{}{0em}{}[\\titlerule]
-\\titlespacing*{\\section}{0pt}{8pt}{4pt}
-\\setlist[itemize]{leftmargin=*, noitemsep, topsep=2pt}
+\\definecolor{primary}{HTML}{2B3A67}
+\\definecolor{accent}{HTML}{3B82F6}
+\\definecolor{subtle}{HTML}{6B7280}
+\\definecolor{divider}{HTML}{D1D5DB}
+
+\\titleformat{\\section}{\\large\\bfseries\\color{primary}\\scshape}{}{0em}{}[\\color{divider}\\titlerule]
+\\titlespacing*{\\section}{0pt}{10pt}{5pt}
+\\setlist[itemize]{leftmargin=1.2em, noitemsep, topsep=2pt, label=\\textcolor{accent}{\\textbullet}}
+\\pagestyle{empty}
 
 \\begin{document}
 
 \\begin{center}
-{\\LARGE \\textbf{ {{{name}}} }} \\\\[4pt]
-{{{contact}}}
+{\\LARGE\\bfseries\\color{primary} {{{name}}}}\\\\[6pt]
+{\\small\\color{subtle} {{{contact}}}}
 \\end{center}
 
-\\section{Skills}
-{{{skills}}}
+\\vspace{-4pt}
 
-\\section{Education}
-{{{education}}}
+\\section{Technical Skills}
+{{{skills}}}
 
 \\section{Work Experience}
 {{{experience}}}
 
 {{{projectsSection}}}
+
+{{{education}}}
 
 \\end{document}
 `;
@@ -56,6 +64,10 @@ export function sanitizeLatex(text: string): string {
     .replace(/[&%$#_{}]/g, (char) => `\\${char}`)
     .replace(/~/g, "\\textasciitilde{}")
     .replace(/\^/g, "\\textasciicircum{}");
+}
+
+function boldTech(text: string): string {
+  return text.replace(/<<(.+?)>>/g, "\\textbf{$1}");
 }
 
 function fillTemplate(data: Record<string, string>) {
@@ -77,13 +89,15 @@ function buildExperienceHeader(job: any) {
   const company = sanitizeLatex(job.company || "");
   const title = sanitizeLatex(job.title || "");
   const dates = sanitizeLatex(job.dates || "");
-  const header = dates ? `\\textbf{${company}} \\hfill ${dates}` : `\\textbf{${company}}`;
-  return `${header} \\\\\n\\textit{${title}}\\\\`;
+  const header = dates
+    ? `\\textbf{${company}} \\hfill {\\small\\textcolor{subtle}{${dates}}}`
+    : `\\textbf{${company}}`;
+  return `${header} \\\\\n{\\textit{\\textcolor{subtle}{${title}}}}\\\\`;
 }
 
 function buildExperienceBullets(bullets?: string[]) {
   if (!bullets || bullets.length === 0) return "";
-  const items = bullets.map((b) => `\\item ${sanitizeLatex(b)}`).join("\n");
+  const items = bullets.map((b) => `\\item ${boldTech(sanitizeLatex(b))}`).join("\n");
   return `\\begin{itemize}\n${items}\n\\end{itemize}`;
 }
 
@@ -114,15 +128,23 @@ function buildSkills(skills: any[]) {
 
   return [
     "\\begin{tabularx}{\\textwidth}{X X X}",
-    ...lines.map((line) => `${line} \\\\`),
+    ...lines.map((line) => `${line} \\\\[4pt]`),
     "\\end{tabularx}",
   ].join("\n");
 }
 
 function buildEducation(edu: any[]) {
-  return edu
-    .map((e) => `\\textbf{${sanitizeLatex(e.degree)}} \\hfill ${sanitizeLatex(e.year)} \\\n${sanitizeLatex(e.school)}`)
-    .join("\n\n");
+  if (!edu || edu.length === 0) return "";
+  const body = edu
+    .map((e) => {
+      const course = sanitizeLatex(e.degree);
+      const provider = sanitizeLatex(e.school);
+      const year = sanitizeLatex(e.year);
+      const label = provider && year ? `${course} — ${provider} (${year})` : provider ? `${course} — ${provider}` : course;
+      return `\\item ${label}`;
+    })
+    .join("\n");
+  return `\\section{Coursework}\n\\begin{itemize}\n${body}\n\\end{itemize}`;
 }
 
 function buildProjects(projects?: any[]) {
@@ -138,7 +160,7 @@ function buildProjects(projects?: any[]) {
       if (project.skillsUsed) lines.push(`\\textit{Skills Used:} ${sanitizeLatex(project.skillsUsed)}`);
       if (project.highlights?.length) {
         lines.push(
-          `\\begin{itemize}\n${project.highlights.map((b: string) => `\\item ${sanitizeLatex(b)}`).join("\n")}\n\\end{itemize}`,
+          `\\begin{itemize}\n${project.highlights.map((b: string) => `\\item ${boldTech(sanitizeLatex(b))}`).join("\n")}\n\\end{itemize}`,
         );
       }
       return lines.join("\\\\\n");
@@ -155,7 +177,7 @@ export async function generateResume(jsonPath: string, outputPath: string) {
   const contact = [data.location, data.phone, data.email, data.linkedin, data.portfolio]
     .filter(Boolean)
     .map((item: string) => linkify(item))
-    .join(" \\textbar{} ");
+    .join(" \\;\\textcolor{divider}{\\textbar{}}\\; ");
 
   const tex = fillTemplate({
     name: sanitizeLatex(data.name),

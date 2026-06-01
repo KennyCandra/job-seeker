@@ -1,34 +1,73 @@
-\documentclass[11pt]{article}
+\documentclass[10pt, a4paper]{article}
+
+% ─── Encoding & Fonts ─────────────────────────────────
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage[margin=0.7in]{geometry}
+\usepackage{lmodern}
+\usepackage[margin=0.6in, top=0.5in, bottom=0.5in]{geometry}
+
+% ─── Packages ──────────────────────────────────────────
 \usepackage{enumitem}
 \usepackage[hidelinks]{hyperref}
 \usepackage{titlesec}
 \usepackage{xcolor}
 \usepackage{tabularx}
+\usepackage{fontawesome5}
+\usepackage{parskip}
 
-\definecolor{sectionblue}{HTML}{1F6FB2}
-\titleformat{\section}{\large\bfseries\color{sectionblue}}{}{0em}{}[\titlerule]
-\titlespacing*{\section}{0pt}{8pt}{4pt}
-\setlist[itemize]{leftmargin=*, noitemsep, topsep=2pt}
+% ─── Colors ────────────────────────────────────────────
+\definecolor{primary}{HTML}{2B3A67}
+\definecolor{accent}{HTML}{3B82F6}
+\definecolor{subtle}{HTML}{6B7280}
+\definecolor{divider}{HTML}{D1D5DB}
+
+% ─── Section Styling ──────────────────────────────────
+\titleformat{\section}
+  {\large\bfseries\color{primary}\scshape}
+  {}{0em}{}
+  [\color{divider}\titlerule]
+\titlespacing*{\section}{0pt}{10pt}{5pt}
+
+% ─── List Styling ──────────────────────────────────────
+\setlist[itemize]{
+  leftmargin=1.2em,
+  noitemsep,
+  topsep=2pt,
+  label=\textcolor{accent}{\textbullet}
+}
+
+% ─── No page numbers ──────────────────────────────────
+\pagestyle{empty}
+
+% ─── Custom Commands ──────────────────────────────────
+\newcommand{\experienceheader}[3]{%
+  \vspace{4pt}%
+  {\textbf{#1} \hfill \textcolor{subtle}{\small #2}}\\
+  {\textit{\textcolor{subtle}{#3}}}%
+  \vspace{2pt}%
+}
 
 \begin{document}
 
+% ─── Header ────────────────────────────────────────────
 \begin{center}
-{\LARGE \textbf{ {{{name}}} }} \\[4pt]
-{{{contact}}}
+  {\LARGE\bfseries\color{primary} {{{name}}}}\\[6pt]
+  {\small\color{subtle} {{{contact}}}}
 \end{center}
 
-\section{Skills}
+\vspace{-4pt}
+
+% ─── Skills ────────────────────────────────────────────
+\section{Technical Skills}
 {{{skills}}}
 
-\section{Education}
-{{{education}}}
-
+% ─── Experience ────────────────────────────────────────
 \section{Work Experience}
 {{{experience}}}
 
+% ─── Projects ──────────────────────────────────────────
 {{{projectsSection}}}
+
+{{{education}}}
 
 \end{document}

@@ -83,11 +83,21 @@ export function normalizeResumePayload(raw: any): ResumePayload {
       bullets: Array.isArray(item.bullets) ? item.bullets : Array.isArray(item.highlights) ? item.highlights : item.bullets ? [String(item.bullets)] : [],
     })),
     skills: skillsArray,
-    education: educationArray.map((item: any) => ({
-      degree: item.degree || item.area || "",
-      school: item.school || item.institution || "",
-      year: String(item.year || item.endDate || ""),
-    })),
+    education: educationArray.map((item: any) => {
+      if (typeof item === "string") {
+        const dash = item.indexOf("—") !== -1 ? "—" : item.indexOf("-") !== -1 ? "-" : null;
+        if (dash) {
+          const parts = item.split(dash).map((s: string) => s.trim());
+          return { degree: parts[0] || "", school: parts[1]?.replace(/\(.*?\)/g, "").trim() || "", year: parts[1]?.match(/\((\d{4})\)/)?.[1] || "" };
+        }
+        return { degree: item, school: "", year: "" };
+      }
+      return {
+        degree: item.degree || item.area || "",
+        school: item.school || item.institution || "",
+        year: String(item.year || item.endDate || ""),
+      };
+    }),
     projects: projectsArray.map((item: any) => ({
       name: item.name || "",
       link: item.link || item.url,

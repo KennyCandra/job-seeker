@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
-import type { AppStatus, AtsPlatform, JobRecord, ShortlistItem } from "./types";
+import type { AtsPlatform, ShortlistItem } from "./types";
 import { slug, boardUrlForAts } from "./index";
 
 const APP_ROOT = join(import.meta.dir, "..", "..", "..");
@@ -15,7 +15,7 @@ function initDb(): Database {
   return d;
 }
 
-const db = initDb();
+export const db = initDb();
 migrate();
 
 function migrate() {
@@ -211,6 +211,10 @@ export function updateCompanyFetchedAt(slug: string): void {
 
 export function deactivateCompany(slug: string): void {
   db.run("UPDATE companies SET active = 0 WHERE slug = ?", [slug]);
+}
+
+export function updateCompanyAts(slug: string, ats: AtsPlatform, boardUrl: string): void {
+  db.run("UPDATE companies SET ats = ?, board_url = ? WHERE slug = ?", [ats, boardUrl, slug]);
 }
 
 export function getCompaniesCountPerAts() {

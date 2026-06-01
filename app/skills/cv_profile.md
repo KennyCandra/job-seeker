@@ -12,6 +12,7 @@ You are generating resume content as structured JSON and LaTeX-friendly text.
 - Never leave [FILL] placeholders in output.
 - Use full URLs with scheme for links.
 - Do NOT use markdown formatting (e.g. **bold**) in any text — the output is rendered via LaTeX and markdown won't work.
+- Output the coursework list below as `education` entries in the JSON. Each entry must be an object with `degree` (course name), `school` (provider), and `year` (year if available). Example: `{"degree": "Meta Certified Frontend Developer", "school": "Meta", "year": "2024"}`. Do NOT output flat strings.
 
 ### Tailoring Strategy
 
@@ -21,6 +22,15 @@ You are generating resume content as structured JSON and LaTeX-friendly text.
 4. Rewrite project bullet points to highlight the aspects most relevant to the job (e.g. distributed systems focus → emphasize pipeline/scaling; full-stack role → emphasize UI + API work).
 5. Reorder projects so the most relevant project appears first.
 6. Keep all facts accurate — do not fabricate metrics, technologies, or achievements. Only rephrase and re-emphasize existing work.
+
+### Highlighting Key Technologies
+
+In project and experience bullet points, wrap important technology names and key concepts in `<<` `>>` markers to make them stand out. For example:
+
+- `Designed <<event-driven>> pipeline using <<BullMQ>> for job queuing and <<Redis>> for caching`
+- `Implemented <<idempotent>> processing with <<DLQ>> retry policies`
+
+The markers `<<` and `>>` will be rendered as bold in the final PDF. Only highlight technologies and concepts that are directly relevant to the job being applied for.
 
 ### Skills Policy (CRITICAL)
 
@@ -49,12 +59,14 @@ Infrastructure
 
 ## Candidate Profile
 
-### Education
+### Coursework
 
-- Degree: Faculty of Pharmacy
-- School: Modern University, Cairo, Egypt
-- Year: 2024
-- Note: Self-taught software engineer since 2022, learning by building production systems in evenings and weekends.
+- Meta Certified Frontend Developer — Meta (2024)
+- Complete SQL Databases Bootcamp: Zero to Mastery (Udemy)
+- Master the Coding Interview: Data Structures & Algorithms (Udemy)
+- Node.js: The Complete Guide (Udemy)
+- Grokking Algorithms — Aditya Bhargava
+- Designing Data-Intensive Applications — Martin Kleppmann
 
 ### Experience
 
@@ -77,14 +89,14 @@ Infrastructure
 #### RootCluster — AI-Powered Log Analysis Platform | rootcluster.dev
 
 - Tech: Node.js, TypeScript, PostgreSQL (pgvector), Redis, BullMQ, ONNX, AWS ECS Fargate, Docker, GitHub Actions
-- Skills Used: TypeScript, Node.js, PostgreSQL, Redis, AWS, Docker, BullMQ
-- Designed and deployed distributed log ingestion pipeline on AWS ECS Fargate processing 1M+ events/hour with sub-second latency.
+- Skills Used: TypeScript, Node.js, PostgreSQL, Redis, AWS, Docker, BullMQ, Event-Driven Architecture, Async Processing
+- Designed and deployed a distributed, event-driven log ingestion pipeline on AWS ECS Fargate using BullMQ for job queuing, Redis for caching and rate limiting, and PostgreSQL (pgvector) for similarity search — processing 1M+ events/hour with sub-second latency.
+- Implemented robust async processing patterns: producer-consumer queues for log normalization, worker pools with configurable concurrency, and priority queues for urgent events vs. batch backfill jobs.
+- Built dead-letter queues (DLQs) with retry policies (exponential backoff, max attempts) to handle malformed or failing log entries without pipeline blockage.
+- Designed idempotent event processing using Redis-backed dedup keys and at-least-once delivery semantics through BullQueue's job completion callbacks.
 - Reduced ONNX embedding time from 20+ minutes to under 1 minute via batch processing, Redis caching, and worker autoscaling.
-- Designed event-driven pipeline: normalize → embed → cluster → merge → root cause, with retries, exponential backoff, DLQs, and idempotent processing.
 - Implemented centroid-based pgvector clustering to unify cross-service failures into single root causes.
 - Set up full CI/CD with GitHub Actions OIDC, ECR, SSM Parameter Store, RDS PostgreSQL, and ElastiCache.
-- Applied PostgreSQL internals (MVCC, isolation levels, indexing) to build high-throughput write pipeline avoiding lock contention.
-- Leveraged CAP theorem tradeoffs: PostgreSQL for strong consistency, Redis for high-availability caching.
 
 #### Medical CRM — AI-Enhanced Prescription Platform
 
