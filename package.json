@@ -4,17 +4,26 @@
   "dependencies": {
     "@types/express": "^5.0.6",
     "chromium-bidi": "^16.0.1",
+    "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
     "grammy": "^1.43.0",
     "node-latex": "^3.1.0",
     "playwright": "^1.52.0",
     "zod": "^4.4.3"
   },
+  "devDependencies": {
+    "concurrently": "^10.0.3",
+    "drizzle-kit": "^0.31.10"
+  },
   "private": true,
   "scripts": {
-    "dev": "bun --watch app/src/main.ts",
+    "dev": "concurrently \"bun --watch app/src/main.ts\" \"bun run --cwd app/frontend dev\"",
+    "build:frontend": "bun run --cwd app/frontend build",
     "start": "bun app/src/main.ts",
-    "postinstall": "playwright install chromium"
+    "postinstall": "playwright install chromium",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "type": "module"
 }

@@ -6,7 +6,7 @@ import { readText, writeJson, writeText } from "../shared/utils";
 import { generateResume } from "./latex";
 import { resumeSchema, applicationSchema } from "../schemas/index";
 import { buildResumePrompt, buildApplicationPrompt } from "../shared/prompts";
-import { saveAcceptedJob } from "../shared/db";
+import { applications } from "../db";
 import { APP_ROOT, SKILLS_DIR, slug, normalizeResumePayload, getPersonalData, renderApplicationMarkdown } from "../shared/index";
 
 const JOBS_DIR = join(APP_ROOT, "data", "jobs");
@@ -61,26 +61,6 @@ export async function compilePdf(job: JobRecord, resume: ResumePayload): Promise
   return pdfPath;
 }
 
-export async function buildApplicationPackage(job: JobRecord, resume: ResumePayload): Promise<void> {
-  const client = new OpenCodeClient({
-    baseUrl: process.env.OPENCODE_BASE_URL || undefined,
-    model: process.env.OPENCODE_MODEL || undefined,
-    providerId: process.env.OPENCODE_PROVIDER_ID || undefined,
-  });
-
-  const dir = join(JOBS_DIR, slug(job.company));
-  mkdirSync(dir, { recursive: true });
-
-  const pdfPath = await compilePdf(job, resume);
-  console.log(`[generator] PDF saved: ${pdfPath}`);
-
-  const app = await generateApplicationForJob(client, job, resume);
-  writeJson(join(dir, "application.json"), app);
-
-  const md = renderApplicationMarkdown(job, resume, app);
-  writeText(join(dir, "application.md"), md);
-}
-
 export async function makeCvForJob(job: JobRecord, score: number, client?: OpenCodeClient): Promise<ResumePayload> {
   const c = client || new OpenCodeClient({
     baseUrl: process.env.OPENCODE_BASE_URL || undefined,
@@ -97,7 +77,7 @@ export async function makeCvForJob(job: JobRecord, score: number, client?: OpenC
   const pdfPath = await compilePdf(job, resume);
   console.log(`[generator] PDF saved: ${pdfPath}`);
 
-  saveAcceptedJob(job.id, job.company, job.title, job.location, job.site, job.url, score);
+  applications.instance.saveAcceptedJob({ jobId: job.id, company: job.company, title: job.title, location: job.location, site: job.site, url: job.url, score });
 
   const app = await generateApplicationForJob(c, job, resume);
   writeJson(join(dir, "application.json"), app);

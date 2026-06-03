@@ -1,6 +1,6 @@
 import type { AtsPlatform } from "../shared/types";
 import type { SearchConfig } from "../shared/types";
-import { saveCompany, getCompanyBySlug } from "../shared/db";
+import { companies } from "../db";
 import { boardUrlForAts } from "../shared/index";
 
 const GREENHOUSE_PATTERN = /greenhouse\.io\/([^\/\s?]+)/i;
@@ -137,10 +137,10 @@ export function saveNewDiscoveredCompanies(
 ): number {
   let added = 0;
   for (const r of results) {
-    const existing = getCompanyBySlug(r.slug);
+    const existing = companies.instance.getBySlug(r.slug);
     if (!existing) {
       const boardUrl = boardUrlForAts(r.slug, r.ats);
-      saveCompany(r.slug, r.name, r.ats, boardUrl);
+      companies.instance.save({ slug: r.slug, name: r.name, ats: r.ats, boardUrl });
       added++;
     }
   }

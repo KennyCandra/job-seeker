@@ -13,10 +13,13 @@ export function buildExtractPrompt(text: string) {
   return { system: EXTRACT_SYSTEM, user: text };
 }
 
-export function buildFilterPrompt(job: JobRecord, filterMd: string) {
+export function buildFilterPrompt(job: JobRecord, filterMd: string, targetCompanies?: string[]) {
+  const targetHint = targetCompanies?.length
+    ? `\n\nTarget companies (prioritize these): ${targetCompanies.join(", ")}`
+    : "";
   return {
     system: filterMd,
-    user: `Evaluate this job and return JSON only. No markdown, no commentary.\n\nTitle: ${job.title}\nCompany: ${job.company}\nLocation: ${job.location}\nSite: ${job.site}\nURL: ${job.url}\nDescription:\n${job.description}`,
+    user: `Evaluate this job and return JSON only. No markdown, no commentary.\n\nTitle: ${job.title}\nCompany: ${job.company}\nLocation: ${job.location}\nSite: ${job.site}\nURL: ${job.url}\nDescription:\n${job.description}${targetHint}`,
   };
 }
 

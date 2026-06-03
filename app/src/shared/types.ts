@@ -79,6 +79,7 @@ export type SearchConfig = {
   ats: string[];
   min_score: number;
   discovery_interval_hours: number;
+  targetCompanies: string[];
 };
 
 export type ShortlistItem = {
@@ -107,6 +108,22 @@ export type ApplicationRecord = {
   documents: string;
   notes: string;
   createdAt: string;
+};
+
+/**
+ * UPDATE: Mar 2026 — Migration 2 restructured saved_jobs table.
+ * Removed: jobKey, ats, metadata.
+ * See migration 2 in app/src/db/migrate.ts.
+ */
+export type SavedJob = {
+  companySlug: string;
+  jobId: string;
+  url: string;
+  title: string;
+  location: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type LlmProvider = "opencode" | "anthropic" | "openai";

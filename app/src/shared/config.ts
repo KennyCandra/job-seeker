@@ -1,15 +1,11 @@
-import { readFileSync, existsSync } from "fs";
-import { join } from "path";
 import type { SearchConfig, LlmConfig, LlmProvider } from "./types";
+import { searchConfig } from "../db";
 
-const APP_ROOT = join(import.meta.dir, "..", "..", "..");
-const CONFIG_PATH = join(APP_ROOT, "data", "search_config.json");
+const CONFIG_KEY = "search_config";
 
 export function loadSearchConfig(): SearchConfig {
-  if (existsSync(CONFIG_PATH)) {
-    const raw = readFileSync(CONFIG_PATH, "utf-8");
-    return JSON.parse(raw) as SearchConfig;
-  }
+  const raw = searchConfig.instance.getJson<SearchConfig | null>(CONFIG_KEY, null);
+  if (raw) return raw;
   return {
     roles: ["backend engineer", "fullstack engineer", "software engineer"],
     location: ["EMEA", "worldwide", "global", "remote"],
@@ -17,7 +13,12 @@ export function loadSearchConfig(): SearchConfig {
     ats: ["greenhouse", "lever", "ashby"],
     min_score: 65,
     discovery_interval_hours: 48,
+    targetCompanies: [],
   };
+}
+
+export function saveSearchConfig(config: SearchConfig): void {
+  searchConfig.instance.setJson(CONFIG_KEY, config);
 }
 
 export function loadLlmConfig(): LlmConfig {

@@ -1,21 +1,46 @@
 import express, { type Request, type Response } from "express";
+import { join } from "path";
+import { existsSync } from "fs";
+import { APP_ROOT } from "../shared/paths";
+
+import statsRouter from "./routes/stats";
+import shortlistRouter from "./routes/shortlist";
+import applicationsRouter from "./routes/applications";
+import companiesRouter from "./routes/companies";
+import configRouter from "./routes/config";
+import savedJobsRouter from "./routes/savedJobs";
+import pipelineRouter from "./routes/pipeline";
+import cvRouter from "./routes/cv";
+import jobRouter from "./routes/job";
+import chatRouter from "./routes/chat";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+const FRONTEND_DIST = join(APP_ROOT, "app", "frontend", "dist");
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
-function sendJson(res: Response, data: unknown, status = 200) {
-  res.status(status).json(data);
-}
-
-function sendError(res: Response, message: string, status = 500) {
-  res.status(status).json({ error: message });
-}
+app.use(statsRouter);
+app.use(shortlistRouter);
+app.use(applicationsRouter);
+app.use(companiesRouter);
+app.use(configRouter);
+app.use(savedJobsRouter);
+app.use(pipelineRouter);
+app.use(cvRouter);
+app.use(jobRouter);
+app.use(chatRouter);
 
 app.get("/health", (_req: Request, res: Response) => {
-  sendJson(res, { status: "ok" });
+  res.json({ status: "ok" });
 });
+
+if (existsSync(FRONTEND_DIST)) {
+  app.use(express.static(FRONTEND_DIST));
+  app.get("/{*path}", (_req: Request, res: Response) => {
+    res.sendFile(join(FRONTEND_DIST, "index.html"));
+  });
+}
 
 export function start() {
   app.listen(PORT, () => {

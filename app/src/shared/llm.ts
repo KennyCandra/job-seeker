@@ -31,37 +31,59 @@ export class OpenCodeClient {
       system,
       parts: [{ type: "text", text: user }],
     };
-    if (this.model && this.providerId) {
-      body.model = { modelID: this.model, providerID: this.providerId };
+    if (this.model) {
+      body.model = { modelID: this.model, providerID: this.providerId || "" };
     }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
     const start = Date.now();
 
-    const res = await fetch(`${this.baseUrl}/session/${sessionId}/message`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    }).finally(() => {
-      clearTimeout(timeout);
+    let status = 0;
+    let responseText = "";
+    try {
+      const res = await fetch(`${this.baseUrl}/session/${sessionId}/message`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      status = res.status;
+      responseText = await res.text();
       const elapsed = Date.now() - start;
-      console.log(`OpenCode response received in ${elapsed}ms`);
-    });
+      const modelStr = this.model ? `${this.providerId || ""}/${this.model}` : "default";
+      const preview = responseText.replace(/\n/g, " ").slice(0, 200);
+      console.log(`[LLM] ${elapsed}ms | ${modelStr} | ${status} | ${preview}...`);
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`OpenCode error ${res.status}: ${text}`);
-    }
+      if (!res.ok) {
+        throw new Error(`OpenCode error ${res.status}: ${responseText}`);
+      }
 
-    const json = (await res.json()) as { parts?: Array<{ type?: string; text?: string }> };
-    const textParts = (json.parts || []).filter((part) => part.type === "text");
-    const content = textParts.map((part) => part.text || "").join("").trim();
-    if (!content) {
-      throw new Error("OpenCode response missing content");
+      const json = JSON.parse(responseText) as { parts?: Array<{ type?: string; text?: string }> };
+      const textParts = (json.parts || []).filter((part) => part.type === "text");
+      const content = textParts.map((part) => part.text || "").join("").trim();
+      if (!content) {
+        throw new Error("OpenCode response missing content");
+      }
+
+      this.logTrace("completeJson", { system, user }, { status, content, elapsed: Date.now() - start });
+      return content;
+    } catch (err) {
+      this.logTrace("completeJson", { system, user }, { status, responseText, error: (err as Error).message });
+      throw err;
+    } finally {
+      clearTimeout(timeout);
     }
-    return content;
+  }
+
+  private logTrace(kind: string, request: unknown, response: unknown): void {
+    if (!this.debugDir) return;
+    const { mkdirSync, writeFileSync } = require("fs");
+    const { join } = require("path");
+    mkdirSync(this.debugDir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const filePath = join(this.debugDir, `opencode-${kind}-${stamp}.json`);
+    writeFileSync(filePath, JSON.stringify({ request, response, ts: new Date().toISOString() }, null, 2), "utf-8");
   }
 
   async filterJob(system: string, user: string): Promise<FilterResult> {

@@ -1,5 +1,5 @@
 import type { AtsPlatform, JobRecord } from "../shared/types";
-import { getActiveCompanies, updateCompanyFetchedAt, isJobSeen, markJobSeen, deactivateCompany } from "../shared/db";
+import { companies, savedJobs } from "../db";
 import { normalizeJob } from "./parser";
 import { APP_ROOT } from "../shared/index";
 import { join } from "path";
@@ -11,28 +11,32 @@ const JOBS_DIR = join(APP_ROOT, "data", "jobs");
 type RawJob = Record<string, unknown>;
 
 export async function fetchAllJobs(): Promise<JobRecord[]> {
-  const companies = getActiveCompanies();
-  console.log(`[fetch] Fetching jobs from ${companies.length} companies...`);
+  const allCompanies = companies.instance.getActive();
+  console.log(`[fetch] Fetching jobs from ${allCompanies.length} companies...`);
   const allNewJobs: JobRecord[] = [];
 
-  for (const company of companies) {
+  for (const company of allCompanies) {
     try {
       const rawJobs = await fetchCompanyJobs(company.ats as AtsPlatform, company.slug);
       const normalized = rawJobs.map((raw) => normalizeJob(raw, company.ats as AtsPlatform));
-      const newJobs = normalized.filter((j) => !isJobSeen(j.title, j.company));
 
-      for (const job of newJobs) {
-        markJobSeen(job.title, job.company);
+      for (const job of normalized) {
         cacheJobDescription(job);
+
+        const parsed = parseJobUrl(job.url);
+        if (parsed) {
+          savedJobs.instance.save({ companySlug: parsed.companySlug, jobId: parsed.jobId, url: job.url, title: job.title, location: job.location, description: job.description });
+        }
+
         allNewJobs.push(job);
       }
 
-      updateCompanyFetchedAt(company.slug);
-      console.log(`[fetch] ${company.name}: ${normalized.length} jobs, ${newJobs.length} new`);
+      companies.instance.updateFetchedAt(company.slug);
+      console.log(`[fetch] ${company.name}: ${normalized.length} jobs`);
     } catch (err: any) {
       if (err instanceof HttpError && err.status === 404) {
         console.warn(`[fetch] ${company.name} (${company.slug}) returned 404 — deactivating`);
-        deactivateCompany(company.slug);
+        companies.instance.deactivate(company.slug);
       } else {
         console.warn(`[fetch] Failed for ${company.name} (${company.slug}): ${err.message}`);
       }
@@ -87,4 +91,92 @@ function cacheJobDescription(job: JobRecord): void {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ── URL parsing & single-job fetch ──
+
+const GREENHOUSE_URL_RX = /greenhouse\.io\/([^\/\s?]+)\/jobs\/(\d+)/i;
+const LEVER_URL_RX = /lever\.co\/([^\/\s?]+)\/([a-f0-9-]+)/i;
+const ASHBY_URL_RX = /ashbyhq\.com\/([^\/\s?]+)\/([a-f0-9-]+)/i;
+
+export function parseJobUrl(url: string): { ats: AtsPlatform; companySlug: string; jobId: string } | null {
+  let m = url.match(GREENHOUSE_URL_RX);
+  if (m) return { ats: "greenhouse", companySlug: m[1], jobId: m[2] };
+  m = url.match(LEVER_URL_RX);
+  if (m) return { ats: "lever", companySlug: m[1], jobId: m[2] };
+  m = url.match(ASHBY_URL_RX);
+  if (m) return { ats: "ashby", companySlug: m[1], jobId: m[2] };
+  return null;
+}
+
+async function fetchSingleGreenhouseJob(slug: string, jobId: string): Promise<Record<string, unknown>> {
+  const url = `https://boards-api.greenhouse.io/v1/boards/${slug}/jobs/${jobId}?content=true`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+  if (!res.ok) throw new HttpError(res.status, `Greenhouse ${res.status}`);
+  return res.json() as Promise<Record<string, unknown>>;
+}
+
+async function fetchSingleLeverJob(slug: string, jobId: string): Promise<Record<string, unknown>> {
+  const url = `https://api.lever.co/v0/postings/${slug}/${jobId}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+  if (!res.ok) throw new HttpError(res.status, `Lever ${res.status}`);
+  return res.json() as Promise<Record<string, unknown>>;
+}
+
+async function fetchSingleAshbyJob(slug: string, jobId: string): Promise<Record<string, unknown>> {
+  const url = `https://api.ashbyhq.com/posting-api/job-board/${slug}/job/${jobId}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+  if (!res.ok) throw new HttpError(res.status, `Ashby ${res.status}`);
+  return res.json() as Promise<Record<string, unknown>>;
+}
+
+async function fetchSingleJob(ats: AtsPlatform, companySlug: string, jobId: string): Promise<Record<string, unknown>> {
+  switch (ats) {
+    case "greenhouse": return fetchSingleGreenhouseJob(companySlug, jobId);
+    case "lever": return fetchSingleLeverJob(companySlug, jobId);
+    case "ashby": return fetchSingleAshbyJob(companySlug, jobId);
+  }
+}
+
+export async function fetchAndSaveJobFromUrl(url: string): Promise<{ job: JobRecord; saved: boolean; error?: string }> {
+  const parsed = parseJobUrl(url);
+  if (!parsed) return { job: null as any, saved: false, error: "Unrecognized URL format" };
+
+  const { ats, companySlug, jobId } = parsed;
+
+  const existing = savedJobs.instance.get(companySlug, jobId);
+  if (existing) {
+    const job: JobRecord = {
+      id: `${ats}-${jobId}`,
+      site: ats,
+      title: existing.title,
+      company: companySlug,
+      location: existing.location,
+      url: existing.url,
+      description: existing.description,
+    };
+    return { job, saved: true };
+  }
+
+  try {
+    const raw = await fetchSingleJob(ats, companySlug, jobId);
+    const job = normalizeJob(raw, ats);
+
+    savedJobs.instance.save({ companySlug, jobId, url, title: job.title, location: job.location, description: job.description });
+
+    return { job, saved: true };
+  } catch (err: any) {
+    savedJobs.instance.save({ companySlug, jobId, url, title: "", location: "", description: "" });
+
+    const fallback: JobRecord = {
+      id: `${ats}-${jobId}`,
+      site: ats,
+      title: "",
+      company: companySlug,
+      location: "",
+      url,
+      description: "",
+    };
+    return { job: fallback, saved: true, error: err.message };
+  }
 }
