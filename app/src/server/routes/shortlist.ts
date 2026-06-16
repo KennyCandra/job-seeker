@@ -14,7 +14,7 @@ router.get("/api/shortlist", (_req: Request, res: Response) => {
 
 router.delete("/api/shortlist/:jobId", (req: Request, res: Response) => {
   try {
-    shortlist.instance.delete(req.params.jobId);
+    shortlist.instance.delete(String(req.params.jobId));
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

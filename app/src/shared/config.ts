@@ -7,7 +7,7 @@ export function loadSearchConfig(): SearchConfig {
   const raw = searchConfig.instance.getJson<SearchConfig | null>(CONFIG_KEY, null);
   if (raw) return raw;
   return {
-    roles: ["backend engineer", "fullstack engineer", "software engineer"],
+    roles: ["fullstack engineer", "software engineer", "fullstack developer", "software developer"],
     location: ["EMEA", "worldwide", "global", "remote"],
     exclude: ["principal", "staff", "architect", "intern"],
     ats: ["greenhouse", "lever", "ashby"],

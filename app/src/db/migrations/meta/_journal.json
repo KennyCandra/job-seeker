@@ -8,6 +8,41 @@
       "when": 1780410865641,
       "tag": "0000_unknown_doctor_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1780410865642,
+      "tag": "0001_company_first_jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1780500000000,
+      "tag": "0002_add_apply_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1780500600000,
+      "tag": "0003_add_job_filter_verdict_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1780501200000,
+      "tag": "0004_add_job_pagination_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1780501800000,
+      "tag": "0005_add_task_and_profile_tables",
+      "breakpoints": true
     }
   ]
 }

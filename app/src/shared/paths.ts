@@ -19,6 +19,16 @@ export function boardUrlForAts(slug: string, ats: AtsPlatform): string {
   }
 }
 
+// Fallback for manual company creation only. Discovered companies should store an
+// endpoint derived from the actual URL found by Playwright/SerpAPI.
+export function endpointForAts(slug: string, ats: AtsPlatform): string {
+  switch (ats) {
+    case "greenhouse": return `https://boards-api.greenhouse.io/v1/boards/${slug}/jobs?content=true`;
+    case "lever": return `https://api.lever.co/v0/postings/${slug}?mode=json`;
+    case "ashby": return `https://api.ashbyhq.com/posting-api/job-board/${slug}?includeCompensation=true`;
+  }
+}
+
 export function jobDir(job: JobRecord): string {
   return join(JOBS_DIR, slug(job.company));
 }

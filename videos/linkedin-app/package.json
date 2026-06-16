@@ -1,0 +1,20 @@
+{
+  "name": "cv-autopilot-linkedin-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preview": "remotion preview src/index.ts",
+    "render": "remotion render src/index.ts LinkedInApp out/cv-autopilot-linkedin.mp4 --codec=h264 --pixel-format=yuv420p"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.385",
+    "remotion": "^4.0.385",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}

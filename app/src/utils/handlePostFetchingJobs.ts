@@ -1,37 +1,27 @@
 import { join } from "path";
-import { companies, savedJobs } from "../db";
+import { companies, jobs } from "../db";
 import { DATA_DIR } from "../shared/paths";
+import { parseAtsUrl } from "../shared/index";
 import { writeFile } from "fs";
-
-function extractCompanyJobId(link: string): { companySlug: string; jobId: string; ats: string } | null {
-    const clean = link.split("?")[0];
-
-    let m = clean.match(/(?:job-)?boards\.([^./]+\.)?greenhouse\.io\/([^/]+)\/jobs\/(\d+)/);
-    if (m) return { companySlug: m[2], jobId: m[3], ats: "greenhouse" };
-
-    m = clean.match(/jobs\.lever\.co\/([^/]+)\/([^/]+)/);
-    if (m) return { companySlug: m[1], jobId: m[2], ats: "lever" };
-
-    m = clean.match(/jobs\.ashbyhq\.com\/([^/]+)\/([^/]+)/);
-    if (m) return { companySlug: m[1], jobId: m[2], ats: "ashby" };
-
-    return null;
-}
 
 export async function handlePostFetchingJobs(links: string[]) {
     console.log(`[handlePostFetchingJobs] Starting with ${links.length} links`);
     for (const [i, link] of links.entries()) {
         console.log(`\n[handlePostFetchingJobs] [${i + 1}/${links.length}] Processing: ${link}`);
 
-        const extracted = extractCompanyJobId(link);
+        const extracted = parseAtsUrl(link);
         if (!extracted) {
             console.warn(`[handlePostFetchingJobs] ⚠ Could not extract company/jobId from URL — skipping`);
             continue;
         }
-        const { companySlug, jobId, ats } = extracted;
+        const { slug: companySlug, jobId, ats, endpoint } = extracted;
+        if (!jobId) {
+            console.warn(`[handlePostFetchingJobs] ⚠ Could not extract jobId from URL — skipping`);
+            continue;
+        }
         console.log(`[handlePostFetchingJobs] Extracted → company: ${companySlug}, jobId: ${jobId}, ats: ${ats}`);
 
-        const existing = savedJobs.instance.get(companySlug, jobId);
+        const existing = jobs.instance.get(companySlug, jobId);
         if (existing) {
             console.log(`[handlePostFetchingJobs] ⏭ Already in DB — skipping`);
             continue;
@@ -47,16 +37,22 @@ export async function handlePostFetchingJobs(links: string[]) {
         console.log(`[handlePostFetchingJobs] ✓ Fetched ${text.length} bytes`);
 
         if (!companies.instance.getBySlug(companySlug)) {
-            const boardUrl = link.split("/jobs/")[0];
-            companies.instance.save({ name: companySlug, ats: ats as any, slug: companySlug, boardUrl });
+            companies.instance.save({ name: companySlug, ats, slug: companySlug, endpoint });
             console.log(`[handlePostFetchingJobs] ➕ Added company "${companySlug}" (${ats})`);
         } else {
             console.log(`[handlePostFetchingJobs] Company "${companySlug}" already exists`);
         }
 
-        savedJobs.instance.save({
-            companySlug,
-            jobId,
+        const company = companies.instance.getBySlug(companySlug);
+        if (!company) {
+            console.error(`[handlePostFetchingJobs] ❌ Company "${companySlug}" missing after save`);
+            continue;
+        }
+
+        jobs.instance.save({
+            id: `${ats === "greenhouse" ? "gh" : ats}-${jobId}`,
+            companyId: company.id,
+            externalId: jobId,
             url: link,
             title: "",
             location: "",

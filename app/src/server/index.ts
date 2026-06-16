@@ -9,10 +9,14 @@ import applicationsRouter from "./routes/applications";
 import companiesRouter from "./routes/companies";
 import configRouter from "./routes/config";
 import savedJobsRouter from "./routes/savedJobs";
+import jobsRouter from "./routes/jobs";
 import pipelineRouter from "./routes/pipeline";
 import cvRouter from "./routes/cv";
 import jobRouter from "./routes/job";
 import chatRouter from "./routes/chat";
+import applyRouter from "./routes/apply";
+import tasksRouter from "./routes/tasks";
+import profileRouter from "./routes/profile";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -26,10 +30,14 @@ app.use(applicationsRouter);
 app.use(companiesRouter);
 app.use(configRouter);
 app.use(savedJobsRouter);
+app.use(jobsRouter);
 app.use(pipelineRouter);
 app.use(cvRouter);
 app.use(jobRouter);
 app.use(chatRouter);
+app.use(applyRouter);
+app.use(tasksRouter);
+app.use(profileRouter);
 
 app.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });

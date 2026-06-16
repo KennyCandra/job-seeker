@@ -2,22 +2,27 @@ import { join } from "path";
 import { mkdirSync } from "fs";
 import { OpenCodeClient } from "../shared/llm";
 import type { JobRecord, ResumePayload, ApplicationPayload } from "../shared/types";
-import { readText, writeJson, writeText } from "../shared/utils";
+import { writeJson, writeText } from "../shared/utils";
 import { generateResume } from "./latex";
 import { resumeSchema, applicationSchema } from "../schemas/index";
-import { buildResumePrompt, buildApplicationPrompt } from "../shared/prompts";
-import { applications } from "../db";
-import { APP_ROOT, SKILLS_DIR, slug, normalizeResumePayload, getPersonalData, renderApplicationMarkdown } from "../shared/index";
+import { buildResumePrompt, buildApplicationPrompt, buildDocumentPrompt } from "../shared/prompts";
+import { companies, jobs, jobDocuments } from "../db";
+import { APP_ROOT, slug, normalizeResumePayload, getPersonalData, getProfileForLlm, getApplicationPrefsForLlm, renderApplicationMarkdown, parseJsonFromText } from "../shared/index";
 
 const JOBS_DIR = join(APP_ROOT, "data", "jobs");
-const CV_MD = join(SKILLS_DIR, "cv_profile.md");
-const APP_MD = join(SKILLS_DIR, "application_prefs.md");
+function getClient(client?: OpenCodeClient): OpenCodeClient {
+  return client || new OpenCodeClient({
+    baseUrl: process.env.OPENCODE_BASE_URL || undefined,
+    model: process.env.OPENCODE_MODEL || undefined,
+    providerId: process.env.OPENCODE_PROVIDER_ID || undefined,
+  });
+}
 
 export async function generateResumeForJob(client: OpenCodeClient, job: JobRecord): Promise<ResumePayload> {
-  const cvMd = readText(CV_MD);
+  const profileMd = getProfileForLlm();
   const personal = getPersonalData();
   console.log(`[generator] Resume for ${job.company} - ${job.title}...`);
-  const prompt = buildResumePrompt(job, cvMd, personal);
+  const prompt = buildResumePrompt(job, profileMd, personal);
   const resume = await client.createResume(prompt.system, prompt.user);
   const normalized = normalizeResumePayload(resume);
 
@@ -42,9 +47,9 @@ export async function generateApplicationForJob(
   job: JobRecord,
   resume: ResumePayload,
 ): Promise<ApplicationPayload> {
-  const appMd = readText(APP_MD);
+  const appPrefs = getApplicationPrefsForLlm();
   console.log("[generator] Application copy...");
-  const prompt = buildApplicationPrompt(job, resume, appMd);
+  const prompt = buildApplicationPrompt(job, resume, appPrefs);
   const application = await client.createApplication(prompt.system, prompt.user);
   return applicationSchema.parse(application);
 }
@@ -62,28 +67,125 @@ export async function compilePdf(job: JobRecord, resume: ResumePayload): Promise
 }
 
 export async function makeCvForJob(job: JobRecord, score: number, client?: OpenCodeClient): Promise<ResumePayload> {
-  const c = client || new OpenCodeClient({
-    baseUrl: process.env.OPENCODE_BASE_URL || undefined,
-    model: process.env.OPENCODE_MODEL || undefined,
-    providerId: process.env.OPENCODE_PROVIDER_ID || undefined,
-  });
+  const c = getClient(client);
 
   const dir = join(JOBS_DIR, slug(job.company));
   mkdirSync(dir, { recursive: true });
+  ensurePersistedJob(job);
 
   const resume = await generateResumeForJob(c, job);
   writeJson(join(dir, "resume.json"), resume);
 
   const pdfPath = await compilePdf(job, resume);
   console.log(`[generator] PDF saved: ${pdfPath}`);
-
-  applications.instance.saveAcceptedJob({ jobId: job.id, company: job.company, title: job.title, location: job.location, site: job.site, url: job.url, score });
+  jobDocuments.instance.save({ jobId: job.id, type: "cv", filePath: pdfPath, metadata: { score } });
 
   const app = await generateApplicationForJob(c, job, resume);
   writeJson(join(dir, "application.json"), app);
 
   const md = renderApplicationMarkdown(job, resume, app);
   writeText(join(dir, "application.md"), md);
+  jobDocuments.instance.save({ jobId: job.id, type: "cover_letter", content: app.cover_letter, filePath: join(dir, "application.md"), metadata: { email_subject: app.email_subject } });
 
   return resume;
+}
+
+export async function generateCvDocument(job: JobRecord, score: number, client?: OpenCodeClient): Promise<string> {
+  const c = getClient(client);
+  const dir = join(JOBS_DIR, slug(job.company));
+  mkdirSync(dir, { recursive: true });
+  ensurePersistedJob(job);
+
+  const resume = await generateResumeForJob(c, job);
+  writeJson(join(dir, "resume.json"), resume);
+
+  const pdfPath = await compilePdf(job, resume);
+  console.log(`[generator] CV PDF saved: ${pdfPath}`);
+  jobDocuments.instance.save({ jobId: job.id, type: "cv", filePath: pdfPath, metadata: { score } });
+
+  return pdfPath;
+}
+
+export async function generateCoverLetterDocument(job: JobRecord, client?: OpenCodeClient): Promise<string> {
+  const c = getClient(client);
+  const dir = join(JOBS_DIR, slug(job.company));
+  mkdirSync(dir, { recursive: true });
+  ensurePersistedJob(job);
+
+  const resume = await generateResumeForJob(c, job);
+  const app = await generateApplicationForJob(c, job, resume);
+
+  writeJson(join(dir, "application.json"), app);
+  const md = renderApplicationMarkdown(job, resume, app);
+  writeText(join(dir, "application.md"), md);
+
+  jobDocuments.instance.save({
+    jobId: job.id,
+    type: "cover_letter",
+    content: app.cover_letter,
+    filePath: join(dir, "application.md"),
+    metadata: { email_subject: app.email_subject },
+  });
+
+  return app.cover_letter;
+}
+
+export async function generateRecommendationDocument(job: JobRecord, client?: OpenCodeClient): Promise<string> {
+  const c = getClient(client);
+  const dir = join(JOBS_DIR, slug(job.company));
+  mkdirSync(dir, { recursive: true });
+  ensurePersistedJob(job);
+
+  const resume = await generateResumeForJob(c, job);
+  const docsContext = [
+    "Create useful application support documents from the saved candidate profile and answers.",
+    getApplicationPrefsForLlm(),
+  ].join("\n\n");
+  const prompt = buildDocumentPrompt("recommendation", job, resume, docsContext);
+  const result = await c.completeJson(prompt.system, prompt.user);
+  const parsed = parseJsonFromText<Record<string, string>>(result);
+  const content = parsed.content || result;
+
+  jobDocuments.instance.save({
+    jobId: job.id,
+    type: "recommendation",
+    content,
+    metadata: { score: null },
+  });
+
+  return content;
+}
+
+function ensurePersistedJob(job: JobRecord): void {
+  const companySlug = slug(job.company);
+  let company = companies.instance.getBySlug(companySlug);
+  if (!company) {
+    companies.instance.save({
+      slug: companySlug,
+      name: job.company,
+      ats: (job.site || "manual") as any,
+      endpoint: job.url || `manual:${companySlug}`,
+    });
+    company = companies.instance.getBySlug(companySlug);
+  }
+  if (!company) throw new Error(`Failed to create company for ${job.company}`);
+
+  if (!jobs.instance.getById(job.id)) {
+    jobs.instance.save({
+      id: job.id,
+      companyId: company.id,
+      externalId: externalIdFromJob(job),
+      url: job.url,
+      title: job.title,
+      location: job.location,
+      description: job.description,
+    });
+  }
+}
+
+function externalIdFromJob(job: JobRecord): string {
+  if (job.site === "greenhouse") return job.id.replace(/^gh-/, "");
+  if (job.site === "lever") return job.id.replace(/^lever-/, "");
+  if (job.site === "ashby") return job.id.replace(/^ashby-/, "");
+  return job.id;
 }

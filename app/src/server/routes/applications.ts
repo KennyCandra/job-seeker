@@ -23,6 +23,7 @@ router.get("/api/applications", (_req: Request, res: Response) => {
 
 router.patch("/api/applications/:jobId/status", (req: Request, res: Response) => {
   try {
+    const jobId = String(req.params.jobId);
     const { status } = req.body as { status: AppStatus };
     const valid: AppStatus[] = [
       "approved", "ready", "applied", "interviewing",
@@ -32,7 +33,7 @@ router.patch("/api/applications/:jobId/status", (req: Request, res: Response) =>
       res.status(400).json({ error: `Invalid status: ${status}` });
       return;
     }
-    applications.instance.updateStatus(req.params.jobId, status);
+    applications.instance.updateStatus(jobId, status);
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -41,7 +42,7 @@ router.patch("/api/applications/:jobId/status", (req: Request, res: Response) =>
 
 router.delete("/api/applications/:jobId", (req: Request, res: Response) => {
   try {
-    applications.instance.delete(req.params.jobId);
+    applications.instance.delete(String(req.params.jobId));
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -50,7 +51,7 @@ router.delete("/api/applications/:jobId", (req: Request, res: Response) => {
 
 router.get("/api/applications/:jobId/pdf", (req: Request, res: Response) => {
   try {
-    const appRow = applications.instance.getByJobId(req.params.jobId);
+    const appRow = applications.instance.getByJobId(String(req.params.jobId));
     if (!appRow) { res.status(404).json({ error: "Application not found" }); return; }
 
     const companySlug = slug(appRow.company);
@@ -77,7 +78,7 @@ router.post("/api/applications/:jobId/generate", (req: Request, res: Response) =
 
   (async () => {
     try {
-      const { jobId } = req.params;
+      const jobId = String(req.params.jobId);
       const force = req.query.force === "true";
       const appRow = applications.instance.getByJobId(jobId);
       if (!appRow) {

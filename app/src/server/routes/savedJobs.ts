@@ -3,7 +3,7 @@ import { join } from "path";
 import { SKILLS_DIR, createClient } from "../../shared/index";
 import { readText } from "../../shared/utils";
 import { loadSearchConfig } from "../../shared/config";
-import { applications, companies, savedJobs } from "../../db";
+import { applications, companies, savedJobs, jobFilters } from "../../db";
 import { filterJob } from "../../filter/index";
 import type { JobRecord } from "../../shared/types";
 import { sendError } from "../middleware/response";
@@ -23,7 +23,7 @@ router.get("/api/saved-jobs", (_req: Request, res: Response) => {
 
 router.get("/api/saved-jobs/:company", (req: Request, res: Response) => {
   try {
-    const jobs = savedJobs.instance.getByCompany(req.params.company);
+    const jobs = savedJobs.instance.getByCompany(String(req.params.company));
     const processedIds = new Set(applications.instance.getProcessedJobIds());
     const withStatus = jobs.map((j) => ({ ...j, processed: processedIds.has(j.jobId) }));
     res.json(withStatus);
@@ -34,7 +34,8 @@ router.get("/api/saved-jobs/:company", (req: Request, res: Response) => {
 
 router.post("/api/saved-jobs/:companySlug/:jobId/filter", async (req: Request, res: Response) => {
   try {
-    const { companySlug, jobId } = req.params;
+    const companySlug = String(req.params.companySlug);
+    const jobId = String(req.params.jobId);
     const saved = savedJobs.instance.get(companySlug, jobId);
     if (!saved) return sendError(res, "Saved job not found", 404);
 
@@ -56,13 +57,14 @@ router.post("/api/saved-jobs/:companySlug/:jobId/filter", async (req: Request, r
       return res.json({ accepted: false, error: "Filter failed" });
     }
 
-    const status = result.filter.verdict === "accept" && result.filter.score >= config.min_score ? "ready" : "rejected";
-    const filterDoc = JSON.stringify({ filter: result.filter });
-
-    applications.instance.saveAcceptedJob({
-      jobId, company: companyName, title: saved.title,
-      location: saved.location, site: "", url: saved.url,
-      score: result.filter.score, status, documents: filterDoc,
+    jobFilters.instance.save({
+      id: `filter-${jobId}-${Date.now()}`,
+      jobId,
+      verdict: result.filter.verdict,
+      score: result.filter.score,
+      reasons: result.filter.reasons,
+      mustHaveHits: result.filter.must_have_hits,
+      missingItems: result.filter.missing,
     });
 
     res.json({

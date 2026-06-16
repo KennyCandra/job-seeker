@@ -79,7 +79,8 @@ function extractCompanyFromAshbyUrl(url: string): string {
 export function extractStackMentions(description: string, config: SearchConfig): string[] {
   const lower = description.toLowerCase();
   const mentions: string[] = [];
-  for (const tech of config.stack) {
+  const stack = (config as SearchConfig & { stack?: string[] }).stack || [];
+  for (const tech of stack) {
     if (lower.includes(tech.toLowerCase())) {
       mentions.push(tech);
     }
@@ -90,5 +91,4 @@ export function extractStackMentions(description: string, config: SearchConfig):
 export function buildJobId(company: string, title: string): string {
   return `${slug(company)}-${slug(title)}`;
 }
-
 

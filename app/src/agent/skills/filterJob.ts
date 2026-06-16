@@ -3,7 +3,7 @@ import { SKILLS_DIR, createClient } from "../../shared/index";
 import { readText } from "../../shared/utils";
 import { loadSearchConfig } from "../../shared/config";
 import { filterJob as filterJobFromPipeline } from "../../filter/index";
-import { shortlist, applications } from "../../db";
+import { shortlist, jobFilters } from "../../db";
 import type { AgentSkill } from "../types";
 import type { JobRecord } from "../../shared/types";
 
@@ -35,12 +35,14 @@ export const filterJob: AgentSkill = {
       return { type: "error", message: "Filter evaluation failed." };
     }
 
-    applications.instance.saveAcceptedJob({
-      jobId, company: item.company, title: item.title,
-      location: item.location, site: "", url: item.applyUrl,
+    jobFilters.instance.save({
+      id: `filter-${jobId}-${Date.now()}`,
+      jobId,
+      verdict: result.filter.verdict,
       score: result.filter.score,
-      status: result.filter.verdict === "accept" && result.filter.score >= config.min_score ? "ready" : "rejected",
-      documents: JSON.stringify({ filter: result.filter }),
+      reasons: result.filter.reasons,
+      mustHaveHits: result.filter.must_have_hits,
+      missingItems: result.filter.missing,
     });
 
     const accepted = result.filter.verdict === "accept";

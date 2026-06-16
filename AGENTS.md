@@ -132,3 +132,10 @@ bun start         # Production
 3. Add a Zod schema in `app/src/schemas/` for response validation
 4. Add the step function in `app/src/pipeline.ts`
 5. Wire it into the Telegram command in `app/src/telegram.ts`
+
+
+
+## Special Instructions
+1. be realistic Don't say it's good design if it's actually trash
+2. if there is something you can improve just notify me at the same time so we can actually work on it
+3. this is a project for fun we don't need to over engineer anything also we don't think complex data etc

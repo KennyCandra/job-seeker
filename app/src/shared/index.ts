@@ -1,9 +1,10 @@
 export {
   APP_ROOT, DATA_DIR, OUTPUT_DIR, SKILLS_DIR, JOBS_DIR,
-  slug, boardUrlForAts, jobDir,
+  slug, boardUrlForAts, endpointForAts, jobDir,
 } from "./paths";
+export { parseAtsUrl, type ParsedAtsUrl } from "../discovery/parse/atsUrl";
 export { createClient } from "./client";
-export { getPersonalData } from "./personal";
+export { getPersonalData, getProfileForLlm, getApplicationPrefsForLlm } from "./personal";
 export { normalizeResumePayload } from "./resume";
 export { renderApplicationMarkdown, generateDocument, extractJobFromText } from "./documents";
 export { parseJsonFromText, OpenCodeClient } from "./llm";

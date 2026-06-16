@@ -66,10 +66,16 @@ export type CompanyRecord = {
   slug: string;
   name: string;
   ats: AtsPlatform;
+  endpoint: string;
   boardUrl: string;
   discoveredAt: string;
   lastFetchedAt: string | null;
+  lastSuccessfulFetchAt?: string | null;
+  lastErrorAt?: string | null;
+  lastError?: string | null;
   active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type SearchConfig = {
@@ -110,20 +116,30 @@ export type ApplicationRecord = {
   createdAt: string;
 };
 
-/**
- * UPDATE: Mar 2026 — Migration 2 restructured saved_jobs table.
- * Removed: jobKey, ats, metadata.
- * See migration 2 in app/src/db/migrate.ts.
- */
-export type SavedJob = {
-  companySlug: string;
-  jobId: string;
-  url: string;
+export type JobRow = {
+  id: string;
+  companyId: number;
+  externalId: string;
   title: string;
   location: string;
+  url: string;
   description: string;
+  rawJson: string;
+  contentHash: string;
+  status: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  closedAt: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type SavedJob = JobRow & {
+  companySlug: string;
+  companyName: string;
+  ats: string;
+  jobId: string;
+  processed?: boolean;
 };
 
 export type LlmProvider = "opencode" | "anthropic" | "openai";

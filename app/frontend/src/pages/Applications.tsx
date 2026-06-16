@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { api, type ApplicationRow, type AppStatus } from "../api";
+import { ExternalLink, Download, RefreshCw, Loader2, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 
 const STATUSES: AppStatus[] = [
   "approved", "ready", "applied", "interviewing",
@@ -26,9 +27,7 @@ function FilterReasons({ documents, status }: { documents: string; status: strin
 
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>
-        Filter Result
-      </div>
+      <div className="detail-section-label">Filter Result</div>
       <div className="tag-list">
         <span className="tag" style={{ fontWeight: 600 }}>
           {filter.verdict === "accept" ? "Accepted" : "Rejected"} · {filter.score}
@@ -42,15 +41,15 @@ function FilterReasons({ documents, status }: { documents: string; status: strin
         </div>
       )}
       {filter.must_have_hits && filter.must_have_hits.length > 0 && (
-        <div style={{ marginTop: 4 }}>
-          <span className="text-sm text-muted" style={{ fontWeight: 600 }}>Hits: </span>
-          <span className="text-sm text-muted">{filter.must_have_hits.join(", ")}</span>
+        <div className="filter-detail" style={{ marginTop: 4 }}>
+          <span className="label">Hits: </span>
+          <span className="text-muted">{filter.must_have_hits.join(", ")}</span>
         </div>
       )}
       {filter.missing && filter.missing.length > 0 && (
-        <div style={{ marginTop: 2 }}>
-          <span className="text-sm text-muted" style={{ fontWeight: 600 }}>Missing: </span>
-          <span className="text-sm text-muted">{filter.missing.join(", ")}</span>
+        <div className="filter-detail" style={{ marginTop: 2 }}>
+          <span className="label">Missing: </span>
+          <span className="text-muted">{filter.missing.join(", ")}</span>
         </div>
       )}
     </div>
@@ -74,7 +73,6 @@ export default function Applications() {
 
   useEffect(load, []);
 
-  // Check which apps have PDFs
   useEffect(() => {
     const check = async () => {
       const existing = new Set<string>();
@@ -177,12 +175,13 @@ export default function Applications() {
       <div className="page-header">
         <h1>Applications</h1>
         <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
+          <RefreshCw size={14} />
           {loading ? "Loading..." : "Refresh"}
         </button>
       </div>
 
       {!loading && apps.length === 0 && (
-        <p className="text-muted">No applications yet.</p>
+        <p className="text-muted">No applications yet. Promote a job from the Jobs page.</p>
       )}
 
       <div className="table-wrap">
@@ -200,16 +199,15 @@ export default function Applications() {
           <tbody>
             {apps.map((app) => {
               const hasPdf = pdfExists.has(app.jobId);
+              const isExpanded = expanded === app.jobId;
               return (
                 <>
                   <tr
                     key={app.jobId}
-                    onClick={() =>
-                      setExpanded(expanded === app.jobId ? null : app.jobId)
-                    }
+                    onClick={() => setExpanded(isExpanded ? null : app.jobId)}
                     style={{ cursor: "pointer" }}
                   >
-                    <td>{app.company}</td>
+                    <td><span className="company-badge">{app.company}</span></td>
                     <td>{app.title}</td>
                     <td>
                       <span
@@ -234,6 +232,7 @@ export default function Applications() {
                           )
                         }
                         onClick={(e) => e.stopPropagation()}
+                        className="status-select"
                       >
                         {STATUSES.map((s) => (
                           <option key={s} value={s}>
@@ -247,32 +246,22 @@ export default function Applications() {
                     </td>
                     <td>
                       <div className="flex gap-8" style={{ justifyContent: "flex-end" }} onClick={(e) => e.stopPropagation()}>
-                        {app.url && (
-                          <a href={app.url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost">
-                            Apply →
-                          </a>
-                        )}
-                        <button
-                          className="btn btn-sm btn-danger"
-                          onClick={() => handleDelete(app.jobId)}
-                        >
-                          Delete
-                        </button>
+                        {isExpanded ? <ChevronDown size={14} className="text-muted" /> : <ChevronRight size={14} className="text-muted" />}
                       </div>
                     </td>
                   </tr>
-                  {expanded === app.jobId && (
+                  {isExpanded && (
                     <tr key={`${app.jobId}-docs`}>
                       <td colSpan={6} style={{ background: "var(--surface)", padding: 16 }}>
                         <FilterReasons documents={app.documents} status={app.status} />
                         {app.url && (
                           <div style={{ marginBottom: 8 }}>
                             <a href={app.url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost">
-                              Apply →
+                              <ExternalLink size={14} /> Apply
                             </a>
                           </div>
                         )}
-                        <div className="flex gap-8">
+                        <div className="flex gap-8" style={{ marginBottom: 8 }}>
                           {hasPdf ? (
                             <>
                               <span className="text-sm text-muted" style={{ alignSelf: "center" }}>
@@ -287,7 +276,7 @@ export default function Applications() {
                                   e.preventDefault();
                                 }}
                               >
-                                Download PDF
+                                <Download size={14} /> PDF
                               </a>
                               <button
                                 className="btn btn-sm btn-ghost"
@@ -306,9 +295,15 @@ export default function Applications() {
                               {generating === app.jobId ? "Generating..." : "Create CV"}
                             </button>
                           )}
+                          <button
+                            className="btn btn-sm btn-danger"
+                            onClick={() => handleDelete(app.jobId)}
+                          >
+                            <Trash2 size={14} /> Delete
+                          </button>
                         </div>
                         {genLogs.logs.length > 0 && genLogs.jobId === app.jobId && (
-                          <div className="log-panel" ref={logRef} style={{ marginTop: 8, maxHeight: 150 }}>
+                          <div className="log-panel" ref={logRef} style={{ maxHeight: 150 }}>
                             {genLogs.logs.map((msg, i) => (
                               <div key={i} className="log-line info"><span>{msg}</span></div>
                             ))}

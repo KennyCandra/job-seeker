@@ -3,23 +3,30 @@
   "version": "2.0.0",
   "dependencies": {
     "@types/express": "^5.0.6",
+    "bullmq": "^5.78.1",
     "chromium-bidi": "^16.0.1",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
     "grammy": "^1.43.0",
+    "ioredis": "^5.11.1",
     "node-latex": "^3.1.0",
     "playwright": "^1.52.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "better-sqlite3": "^12.11.1",
     "concurrently": "^10.0.3",
     "drizzle-kit": "^0.31.10"
   },
   "private": true,
   "scripts": {
-    "dev": "concurrently \"bun --watch app/src/main.ts\" \"bun run --cwd app/frontend dev\"",
+    "dev:redis": "docker compose up -d redis",
+    "dev:server": "bun --watch app/src/main.ts",
+    "dev:worker": "bun --watch app/src/worker.ts",
+    "dev": "concurrently -k -n redis,api,worker,web \"docker compose up redis\" \"bun run dev:server\" \"bun run dev:worker\" \"bun run --cwd app/frontend dev\"",
     "build:frontend": "bun run --cwd app/frontend build",
     "start": "bun app/src/main.ts",
+    "start:worker": "bun app/src/worker.ts",
     "postinstall": "playwright install chromium",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

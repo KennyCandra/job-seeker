@@ -1,0 +1,61 @@
+export type TaskType =
+  | "discover-companies"
+  | "discover-fetch-filter"
+  | "sync-all-jobs"
+  | "sync-company"
+  | "normal-filter-batch"
+  | "normal-filter-job"
+  | "smart-filter-accepted"
+  | "smart-filter-job"
+  | "refetch-job"
+  | "generate-document"
+  | "create-application"
+  | "run-apply";
+
+export type TaskStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
+
+export interface EnqueueOptions {
+  force?: boolean;
+  dedupeKey?: string;
+  jobId?: string;
+}
+
+export interface TaskPayload {
+  type: TaskType;
+  payload: Record<string, unknown>;
+  force?: boolean;
+}
+
+export interface TaskRunRecord {
+  id: string;
+  bullJobId: string | null;
+  type: TaskType;
+  status: TaskStatus;
+  dedupeKey: string | null;
+  payloadJson: string;
+  progressJson: string | null;
+  resultJson: string | null;
+  error: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  updatedAt: string;
+}
+
+export interface TaskRunLogRecord {
+  id: string;
+  runId: string;
+  level: string;
+  message: string;
+  payloadJson: string | null;
+  createdAt: string;
+}
+
+export interface TaskHandlerContext {
+  runId: string;
+  payload: Record<string, unknown>;
+  log: (level: string, message: string, meta?: Record<string, unknown>) => Promise<void>;
+  progress: (value: Record<string, unknown>) => Promise<void>;
+  isCancelled: () => boolean;
+  throwIfCancelled: () => void;
+}

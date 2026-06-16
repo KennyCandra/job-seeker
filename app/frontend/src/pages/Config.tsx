@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api, type SearchConfig } from "../api";
+import { Plus, X, Save } from "lucide-react";
 
 function TagEditor({
   label,
@@ -32,7 +33,7 @@ function TagEditor({
           <span key={i} className="tag">
             {t}
             <span className="tag-remove" onClick={() => remove(i)}>
-              ×
+              <X size={12} />
             </span>
           </span>
         ))}
@@ -50,7 +51,7 @@ function TagEditor({
           placeholder={`Add ${label.toLowerCase()}...`}
         />
         <button className="btn btn-ghost btn-sm" onClick={add}>
-          Add
+          <Plus size={14} /> Add
         </button>
       </div>
     </div>
@@ -118,7 +119,7 @@ export default function Config() {
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? "Saving..." : "Save"}
+            <Save size={14} /> {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>

@@ -23,7 +23,7 @@ export function buildFilterPrompt(job: JobRecord, filterMd: string, targetCompan
   };
 }
 
-export function buildResumePrompt(job: JobRecord, cvMd: string, personal: { name: string; email: string; phone: string; location: string; linkedin: string; portfolio?: string }) {
+export function buildResumePrompt(job: JobRecord, cvMd: string, personal: { name: string; email: string; phone: string; location: string; linkedin: string; portfolio?: string; github?: string }) {
   const personalBlock = [
     `Candidate Name: ${personal.name}`,
     `Email: ${personal.email}`,

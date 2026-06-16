@@ -1,23 +1,16 @@
-import { fetchAllJobs } from "../jobs/index";
-import { filterJobs, saveFilterResults } from "../filter/index";
-import { createClient } from "../shared/client";
-import { loadSearchConfig } from "../shared/config";
+import { runFetchAndFilter } from "../pipeline";
 
 export async function poll() {
   try {
-    const config = loadSearchConfig();
-    console.log("[poller] Fetching jobs...");
-    const newJobs = await fetchAllJobs();
-    if (newJobs.length === 0) return;
-
-    const client = createClient();
-    const results = await filterJobs(client, newJobs, config);
-    saveFilterResults(results);
-    const accepted = results.filter(
-      (r) => r.filter.verdict === "accept" && r.filter.score >= config.min_score,
-    );
+    const result = await runFetchAndFilter();
+    const { accepted, sync } = result;
     if (accepted.length > 0) {
       console.log(`[poller] ${accepted.length} matching jobs found — run /run in Telegram`);
+    } else {
+      const totalCandidates = sync.newJobs.length + sync.changedJobs.length;
+      if (totalCandidates > 0) {
+        console.log(`[poller] ${totalCandidates} jobs checked, none matched criteria`);
+      }
     }
   } catch (err) {
     console.error("[poller] Error:", err);

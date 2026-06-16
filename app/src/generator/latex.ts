@@ -10,43 +10,32 @@ const fallbackTemplate = `
 \\usepackage[T1]{fontenc}
 \\usepackage[utf8]{inputenc}
 \\usepackage{lmodern}
-\\usepackage[margin=0.6in, top=0.5in, bottom=0.5in]{geometry}
+\\usepackage[margin=0.5in, top=0.4in, bottom=0.4in]{geometry}
 \\usepackage{enumitem}
 \\usepackage[hidelinks]{hyperref}
 \\usepackage{titlesec}
 \\usepackage{xcolor}
 \\usepackage{tabularx}
-\\usepackage{parskip}
-
+\\setlength{\\parskip}{1pt}
 \\definecolor{primary}{HTML}{2B3A67}
 \\definecolor{accent}{HTML}{3B82F6}
 \\definecolor{subtle}{HTML}{6B7280}
 \\definecolor{divider}{HTML}{D1D5DB}
-
 \\titleformat{\\section}{\\large\\bfseries\\color{primary}\\scshape}{}{0em}{}[\\color{divider}\\titlerule]
-\\titlespacing*{\\section}{0pt}{10pt}{5pt}
-\\setlist[itemize]{leftmargin=1.2em, noitemsep, topsep=2pt, label=\\textcolor{accent}{\\textbullet}}
+\\titlespacing*{\\section}{0pt}{2pt}{1pt}
+\\setlist[itemize]{leftmargin=1em, noitemsep, topsep=0pt, label=\\textcolor{accent}{\\textbullet}}
 \\pagestyle{empty}
-
 \\begin{document}
-
 \\begin{center}
-{\\LARGE\\bfseries\\color{primary} {{{name}}}}\\\\[6pt]
+{\\LARGE\\bfseries\\color{primary} {{{name}}}}\\\\[2pt]
 {\\small\\color{subtle} {{{contact}}}}
 \\end{center}
-
-\\vspace{-4pt}
-
 \\section{Technical Skills}
 {{{skills}}}
-
 \\section{Work Experience}
 {{{experience}}}
-
 {{{projectsSection}}}
-
 {{{education}}}
-
 \\end{document}
 `;
 
@@ -104,7 +93,7 @@ function buildExperienceBullets(bullets?: string[]) {
 function buildExperience(jobs: any[]) {
   return jobs
     .map((job) => `${buildExperienceHeader(job)}${buildExperienceBullets(job.bullets)}`)
-    .join("\n\n");
+    .join("\n");
 }
 
 function buildSkills(skills: any[]) {
@@ -128,7 +117,7 @@ function buildSkills(skills: any[]) {
 
   return [
     "\\begin{tabularx}{\\textwidth}{X X X}",
-    ...lines.map((line) => `${line} \\\\[4pt]`),
+    ...lines.map((line) => `${line} \\\\[1pt]`),
     "\\end{tabularx}",
   ].join("\n");
 }
@@ -165,7 +154,7 @@ function buildProjects(projects?: any[]) {
       }
       return lines.join("\\\\\n");
     })
-    .join("\n\n");
+    .join("\n");
 
   return `\\section{Projects}\n${body}`;
 }

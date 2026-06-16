@@ -1,112 +1,77 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { api, type Stats } from "../api";
-import { useSSE, type SSEEvent } from "../hooks/useSSE";
-
-interface LogLine {
-  type: string;
-  message: string;
-}
+import { useTaskRun } from "../hooks/useTaskRun";
+import TaskLogPanel from "../components/TaskLogPanel";
+import { Play, RefreshCw, Building2, Briefcase, CheckSquare, FileText, UserCheck, Loader2 } from "lucide-react";
 
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [discoveryRunning, setDiscoveryRunning] = useState(false);
-  const [discoverAndProcessRunning, setDiscoverAndProcessRunning] = useState(false);
-  const [logs, setLogs] = useState<LogLine[]>([]);
+  const [dapRunning, setDapRunning] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
-  const logRef = useRef<HTMLDivElement>(null);
+  const pipelineRun = useTaskRun();
+  const discoveryRun = useTaskRun();
+  const dapRun = useTaskRun();
 
   useEffect(() => {
     api.stats().then(setStats).catch(console.error);
   }, []);
 
-  const handlePipelineEvent = (e: SSEEvent) => {
-    if (e.type === "log") {
-      const d = e.data as LogLine;
-      setLogs((prev) => [...prev, d]);
-    } else if (e.type === "done") {
-      setPipelineRunning(false);
-      api.stats().then(setStats).catch(console.error);
+  const runTask = async (
+    type: string,
+    payload: Record<string, unknown>,
+    setRunning: (v: boolean) => void,
+    taskRun: ReturnType<typeof useTaskRun>,
+  ) => {
+    setShowLogs(true);
+    setRunning(true);
+    try {
+      const result = await api.tasks.create(type, payload);
+      taskRun.subscribe(result.runId);
+    } catch (err: any) {
+      setRunning(false);
     }
-  };
-
-  const handleDiscoveryEvent = (e: SSEEvent) => {
-    if (e.type === "log") {
-      const d = e.data as LogLine;
-      setLogs((prev) => [...prev, d]);
-    } else if (e.type === "done") {
-      setDiscoveryRunning(false);
-      api.stats().then(setStats).catch(console.error);
-    }
-  };
-
-  useSSE("/api/pipeline/run", handlePipelineEvent, undefined, false);
-
-  const runPipeline = () => {
-    setLogs([]);
-    setShowLogs(true);
-    setPipelineRunning(true);
-    const es = new EventSource("/api/pipeline/run");
-    es.addEventListener("log", (e: MessageEvent) => {
-      const d = JSON.parse(e.data) as LogLine;
-      setLogs((prev) => [...prev, d]);
-    });
-    es.addEventListener("done", () => {
-      setPipelineRunning(false);
-      api.stats().then(setStats).catch(console.error);
-      es.close();
-    });
-    es.addEventListener("error", () => {
-      setPipelineRunning(false);
-      es.close();
-    });
-  };
-
-  const runDiscovery = () => {
-    setLogs([]);
-    setShowLogs(true);
-    setDiscoveryRunning(true);
-    const es = new EventSource("/api/pipeline/discover");
-    es.addEventListener("log", (e: MessageEvent) => {
-      const d = JSON.parse(e.data) as LogLine;
-      setLogs((prev) => [...prev, d]);
-    });
-    es.addEventListener("done", () => {
-      setDiscoveryRunning(false);
-      api.stats().then(setStats).catch(console.error);
-      es.close();
-    });
-    es.addEventListener("error", () => {
-      setDiscoveryRunning(false);
-      es.close();
-    });
-  };
-
-  const runDiscoverAndProcess = () => {
-    setLogs([]);
-    setShowLogs(true);
-    setDiscoverAndProcessRunning(true);
-    const es = new EventSource("/api/pipeline/discover-and-process");
-    es.addEventListener("log", (e: MessageEvent) => {
-      const d = JSON.parse(e.data) as LogLine;
-      setLogs((prev) => [...prev, d]);
-    });
-    es.addEventListener("done", () => {
-      setDiscoverAndProcessRunning(false);
-      api.stats().then(setStats).catch(console.error);
-      es.close();
-    });
-    es.addEventListener("error", () => {
-      setDiscoverAndProcessRunning(false);
-      es.close();
-    });
   };
 
   useEffect(() => {
-    if (logRef.current) {
-      logRef.current.scrollTop = logRef.current.scrollHeight;
+    if (pipelineRun.status === "completed") {
+      setPipelineRunning(false);
+      api.stats().then(setStats).catch(console.error);
+    } else if (pipelineRun.status === "failed" || pipelineRun.status === "cancelled") {
+      setPipelineRunning(false);
     }
-  }, [logs]);
+  }, [pipelineRun.status]);
+
+  useEffect(() => {
+    if (discoveryRun.status === "completed" || discoveryRun.status === "failed" || discoveryRun.status === "cancelled") {
+      setDiscoveryRunning(false);
+      api.stats().then(setStats).catch(console.error);
+    }
+  }, [discoveryRun.status]);
+
+  useEffect(() => {
+    if (dapRun.status === "completed" || dapRun.status === "failed" || dapRun.status === "cancelled") {
+      setDapRunning(false);
+      api.stats().then(setStats).catch(console.error);
+    }
+  }, [dapRun.status]);
+
+  const activeLogs = pipelineRun.logs.length > 0
+    ? pipelineRun.logs
+    : discoveryRun.logs.length > 0
+      ? discoveryRun.logs
+      : dapRun.logs;
+
+  const activeRunning = pipelineRunning || discoveryRunning || dapRunning;
+
+  const statCards = [
+    { value: stats?.companies ?? "—", label: "Companies", icon: <Building2 size={20} /> },
+    { value: stats?.openJobs ?? "—", label: "Open Jobs", icon: <Briefcase size={20} /> },
+    { value: stats?.shortlist ?? "—", label: "Matched", icon: <CheckSquare size={20} /> },
+    { value: stats?.docsGenerated ?? "—", label: "Docs Generated", icon: <FileText size={20} /> },
+    { value: stats?.applications ?? "—", label: "Applications", icon: <UserCheck size={20} /> },
+  ];
 
   return (
     <div>
@@ -115,68 +80,53 @@ export default function Dashboard() {
       </div>
 
       <div className="stats-bar">
-        <div className="stat-card">
-          <div className="stat-value">{stats?.companies ?? "—"}</div>
-          <div className="stat-label">Companies</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{stats?.shortlist ?? "—"}</div>
-          <div className="stat-label">Shortlist</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{stats?.applications ?? "—"}</div>
-          <div className="stat-label">Applications</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{stats?.savedJobs ?? "—"}</div>
-          <div className="stat-label">Saved Jobs</div>
-        </div>
+        {statCards.map((s) => (
+          <div key={s.label} className="stat-card">
+            <div className="stat-icon">{s.icon}</div>
+            <div className="stat-value">{s.value}</div>
+            <div className="stat-label">{s.label}</div>
+          </div>
+        ))}
       </div>
 
-      <div className="flex gap-16" style={{ marginBottom: 24 }}>
+      <div className="dashboard-actions">
         <button
           className="btn btn-primary"
-          onClick={runPipeline}
+          onClick={() => runTask("sync-all-jobs", {}, setPipelineRunning, pipelineRun)}
           disabled={pipelineRunning}
         >
-          {pipelineRunning ? "⏳ Running..." : "▶ Run Pipeline"}
+          {pipelineRunning ? <Loader2 size={16} className="spin" /> : <Play size={16} />}
+          Run Pipeline
         </button>
         <button
           className="btn btn-ghost"
-          onClick={runDiscovery}
+          onClick={() => runTask("discover-companies", {}, setDiscoveryRunning, discoveryRun)}
           disabled={discoveryRunning}
         >
-          {discoveryRunning ? "⏳ Discovering..." : "🔍 Run Discovery"}
+          {discoveryRunning ? <Loader2 size={16} className="spin" /> : <RefreshCw size={16} />}
+          Run Discovery
         </button>
         <button
-          className="btn btn-accent"
-          onClick={runDiscoverAndProcess}
-          disabled={discoverAndProcessRunning}
+          className="btn btn-ghost"
+          onClick={() => runTask("discover-fetch-filter", {}, setDapRunning, dapRun)}
+          disabled={dapRunning}
         >
-          {discoverAndProcessRunning ? "⏳ Processing..." : "🔄 Discover & Auto-CV"}
+          {dapRunning ? <Loader2 size={16} className="spin" /> : <Play size={16} />}
+          Discover & Process
         </button>
-        {showLogs && (
+        {showLogs && activeRunning && (
           <button className="btn btn-ghost btn-sm" onClick={() => setShowLogs(false)}>
             Hide Logs
           </button>
         )}
       </div>
 
-      {showLogs && (
+      {showLogs && activeRunning && (
         <div className="card">
-          <h3 style={{ marginBottom: 8, fontSize: 13, color: "var(--text-muted)" }}>
-            Pipeline Log
+          <h3 style={{ marginBottom: 8, fontSize: 13, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            Live Log
           </h3>
-          <div className="log-panel" ref={logRef}>
-            {logs.length === 0 && (
-              <div className="log-line info">Waiting for output...</div>
-            )}
-            {logs.map((l, i) => (
-              <div key={i} className={`log-line ${l.type}`}>
-                <span>{l.message}</span>
-              </div>
-            ))}
-          </div>
+          <TaskLogPanel logs={activeLogs} maxHeight={300} />
         </div>
       )}
     </div>

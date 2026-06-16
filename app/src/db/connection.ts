@@ -38,7 +38,7 @@ export function getDb(): DrizzleDb {
 
 export function resetDb(): void {
   if (_defaultDb) {
-    const raw = (_defaultDb as any).session?.session?.db;
+    const raw = (_defaultDb as any).$client || (_defaultDb as any).session?.client;
     if (raw?.close) raw.close();
     _defaultDb = null;
   }

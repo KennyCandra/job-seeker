@@ -4,3 +4,5 @@ venv/
 .gitignore
 debug-*
 data/debug/
+.env
+data/*
