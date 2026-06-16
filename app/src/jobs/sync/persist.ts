@@ -1,36 +1,36 @@
 import { jobs } from "../../db";
 import type { JobRecord } from "../../shared/types";
 
-export function persistSyncResult(
+export async function persistSyncResult(
   newJobs: JobRecord[],
   changedJobs: JobRecord[],
   unchangedJobs: JobRecord[],
   companyId: number,
   rawDataByJobId: Map<string, unknown>,
-): void {
+): Promise<void> {
   const now = new Date().toISOString();
 
   const seenExternalIds: string[] = [];
 
   for (const job of newJobs) {
     const row = toRow(job, companyId, "open", rawDataByJobId.get(job.id));
-    jobs.instance.save(row);
+    await jobs.instance.save(row);
     seenExternalIds.push(row.externalId as string);
   }
 
   for (const job of changedJobs) {
     const row = toRow(job, companyId, "open", rawDataByJobId.get(job.id));
-    jobs.instance.save(row);
+    await jobs.instance.save(row);
     seenExternalIds.push(row.externalId as string);
   }
 
   for (const job of unchangedJobs) {
-    jobs.instance.updateLastSeen(job.id, now);
+    await jobs.instance.updateLastSeen(job.id, now);
     const externalId = extractExternalId(job);
     if (externalId) seenExternalIds.push(externalId);
   }
 
-  jobs.instance.markClosedMissing(companyId, seenExternalIds);
+  await jobs.instance.markClosedMissing(companyId, seenExternalIds);
 }
 
 function toRow(job: JobRecord, companyId: number, status: string, rawJson?: unknown): any {

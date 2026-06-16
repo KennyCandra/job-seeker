@@ -14,7 +14,7 @@ import type { NormalizedJobInput } from "./sync/types";
 export type RawJob = Record<string, unknown>;
 
 export async function syncJobs(): Promise<JobSyncResult> {
-  const allCompanies = companies.instance.getActive();
+  const allCompanies = await companies.instance.getActive();
   console.log(`[sync] Syncing jobs from ${allCompanies.length} companies...`);
 
   const result: JobSyncResult = {
@@ -36,10 +36,10 @@ export async function syncJobs(): Promise<JobSyncResult> {
     } catch (err: any) {
       if (err instanceof HttpError && err.status === 404) {
         console.warn(`[sync] ${company.name} (${company.slug}) returned 404 — deactivating`);
-        companies.instance.deactivate(company.slug);
+        await companies.instance.deactivate(company.slug);
       } else {
         console.warn(`[sync] Failed for ${company.name} (${company.slug}): ${err.message}`);
-        companies.instance.updateFetchError(company.slug, err.message);
+        await companies.instance.updateFetchError(company.slug, err.message);
       }
       result.companyResults.push({
         companyId: company.id,
@@ -70,14 +70,14 @@ export type SingleCompanySyncResult = {
 };
 
 export async function syncCompany(companySlug: string, company?: CompanyRecord): Promise<SingleCompanySyncResult> {
-  const c = company || companies.instance.getBySlug(companySlug);
+  const c = company || await companies.instance.getBySlug(companySlug);
   if (!c) throw new HttpError(404, `Company not found: ${companySlug}`);
 
   const ats = c.ats as AtsPlatform;
   const endpoint = c.endpoint || endpointForAts(c.slug, ats);
   const { jobs: rawJobs, endpoint: resolvedEndpoint } = await fetchCompanyJobs(ats, endpoint);
   if (resolvedEndpoint !== endpoint) {
-    companies.instance.updateAts(c.slug, ats, resolvedEndpoint);
+    await companies.instance.updateAts(c.slug, ats, resolvedEndpoint);
   }
 
   const rawDataByJobId = new Map<string, unknown>();
@@ -96,10 +96,10 @@ export async function syncCompany(companySlug: string, company?: CompanyRecord):
     };
   });
 
-  const companySync = classifyJobs(c.id, c.slug, c.name, ats, inputs);
-  persistSyncResult(companySync.newJobs, companySync.changedJobs, companySync.unchangedJobs, c.id, rawDataByJobId);
+  const companySync = await classifyJobs(c.id, c.slug, c.name, ats, inputs);
+  await persistSyncResult(companySync.newJobs, companySync.changedJobs, companySync.unchangedJobs, c.id, rawDataByJobId);
 
-  companies.instance.updateFetchedAt(c.slug);
+  await companies.instance.updateFetchedAt(c.slug);
   console.log(`[sync] ${c.name}: ` +
     `${companySync.companyResults[0].newCount} new, ` +
     `${companySync.companyResults[0].changedCount} changed, ` +
@@ -221,14 +221,14 @@ export async function fetchAndSaveJobFromUrl(url: string): Promise<{ job: JobRec
   const { ats, companySlug, jobId } = parsed;
   const endpoint = parsedAts?.endpoint || endpointForAts(companySlug, ats);
 
-  let company = companies.instance.getBySlug(companySlug);
+  let company = await companies.instance.getBySlug(companySlug);
   if (!company) {
-    companies.instance.save({ slug: companySlug, name: companySlug, ats, endpoint });
-    company = companies.instance.getBySlug(companySlug);
+    await companies.instance.save({ slug: companySlug, name: companySlug, ats, endpoint });
+    company = await companies.instance.getBySlug(companySlug);
   }
   if (!company) return { job: null as any, saved: false, error: `Failed to create company: ${companySlug}` };
 
-  const existing = jobs.instance.get(companySlug, jobId);
+  const existing = await jobs.instance.get(companySlug, jobId);
   if (existing) {
     const job: JobRecord = {
       id: existing.id,
@@ -246,7 +246,7 @@ export async function fetchAndSaveJobFromUrl(url: string): Promise<{ job: JobRec
   const rawFromList = await fetchJobFromCompanyEndpoint(ats, endpoint, jobId);
   if (rawFromList) {
     const normalized = normalizeJob(rawFromList, ats);
-    jobs.instance.save({
+    await jobs.instance.save({
       id: normalized.id,
       companyId: company.id,
       externalId: jobId,
@@ -273,7 +273,7 @@ export async function fetchAndSaveJobFromUrl(url: string): Promise<{ job: JobRec
     const raw = await fetchSingleJob(ats, endpoint, jobId);
     const job = { ...normalizeJob(raw, ats), company: company.name };
 
-    jobs.instance.save({
+    await jobs.instance.save({
       id: job.id,
       companyId: company.id,
       externalId: jobId,
@@ -286,7 +286,7 @@ export async function fetchAndSaveJobFromUrl(url: string): Promise<{ job: JobRec
 
     return { job, saved: true };
   } catch (err: any) {
-    jobs.instance.save({
+    await jobs.instance.save({
       id: `${ats}-${jobId}`,
       companyId: company.id,
       externalId: jobId,
@@ -310,10 +310,10 @@ export async function fetchAndSaveJobFromUrl(url: string): Promise<{ job: JobRec
 }
 
 export async function refetchJobById(jobId: string): Promise<{ job: JobRecord; source: "company_endpoint" | "single_job_fallback" }> {
-  const saved = jobs.instance.getById(jobId);
+  const saved = await jobs.instance.getById(jobId);
   if (!saved) throw new Error(`Job not found: ${jobId}`);
 
-  const company = companies.instance.getById(saved.companyId);
+  const company = await companies.instance.getById(saved.companyId);
   if (!company) throw new Error(`Company not found for job: ${jobId}`);
 
   const ats = saved.ats as AtsPlatform;
@@ -323,7 +323,7 @@ export async function refetchJobById(jobId: string): Promise<{ job: JobRecord; s
   const rawFromList = await fetchJobFromCompanyEndpoint(ats, endpoint, saved.externalId);
   if (rawFromList) {
     const normalized = normalizeJob(rawFromList, ats);
-    jobs.instance.save({
+    await jobs.instance.save({
       id: jobId,
       companyId: saved.companyId,
       externalId: saved.externalId,
@@ -349,7 +349,7 @@ export async function refetchJobById(jobId: string): Promise<{ job: JobRecord; s
   // Fallback to single-job fetch
   const raw = await fetchSingleJob(ats, endpoint, saved.externalId);
   const normalized = normalizeJob(raw, ats);
-  jobs.instance.save({
+  await jobs.instance.save({
     id: jobId,
     companyId: saved.companyId,
     externalId: saved.externalId,

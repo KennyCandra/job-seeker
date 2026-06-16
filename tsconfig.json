@@ -6,8 +6,6 @@
     "strict": true,
     "skipLibCheck": true,
     "types": ["bun"],
-    "baseUrl": ".",
-    "paths": {},
     "noEmit": true,
     "allowImportingTsExtensions": true
   }

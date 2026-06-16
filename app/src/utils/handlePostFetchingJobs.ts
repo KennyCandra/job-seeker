@@ -21,7 +21,7 @@ export async function handlePostFetchingJobs(links: string[]) {
         }
         console.log(`[handlePostFetchingJobs] Extracted → company: ${companySlug}, jobId: ${jobId}, ats: ${ats}`);
 
-        const existing = jobs.instance.get(companySlug, jobId);
+        const existing = await jobs.instance.get(companySlug, jobId);
         if (existing) {
             console.log(`[handlePostFetchingJobs] ⏭ Already in DB — skipping`);
             continue;
@@ -36,20 +36,20 @@ export async function handlePostFetchingJobs(links: string[]) {
         const text = await res.text();
         console.log(`[handlePostFetchingJobs] ✓ Fetched ${text.length} bytes`);
 
-        if (!companies.instance.getBySlug(companySlug)) {
-            companies.instance.save({ name: companySlug, ats, slug: companySlug, endpoint });
+        if (!(await companies.instance.getBySlug(companySlug))) {
+            await companies.instance.save({ name: companySlug, ats, slug: companySlug, endpoint });
             console.log(`[handlePostFetchingJobs] ➕ Added company "${companySlug}" (${ats})`);
         } else {
             console.log(`[handlePostFetchingJobs] Company "${companySlug}" already exists`);
         }
 
-        const company = companies.instance.getBySlug(companySlug);
+        const company = await companies.instance.getBySlug(companySlug);
         if (!company) {
             console.error(`[handlePostFetchingJobs] ❌ Company "${companySlug}" missing after save`);
             continue;
         }
 
-        jobs.instance.save({
+        await jobs.instance.save({
             id: `${ats === "greenhouse" ? "gh" : ats}-${jobId}`,
             companyId: company.id,
             externalId: jobId,

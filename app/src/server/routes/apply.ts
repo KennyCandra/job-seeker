@@ -12,7 +12,7 @@ const router = Router();
 router.post("/api/jobs/:jobId/apply/run", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
-    const job = jobs.instance.getById(jobId);
+    const job = await jobs.instance.getById(jobId);
     if (!job) {
       res.status(404).json({ error: "Job not found" });
       return;
@@ -26,7 +26,7 @@ router.post("/api/jobs/:jobId/apply/run", async (req: Request, res: Response) =>
     const runId = `apply-${jobId}-${Date.now()}`;
     const profilePath = resolveProfilePath(req.body?.profilePath);
 
-    applicationRuns.instance.create({
+    await applicationRuns.instance.create({
       id: runId,
       jobId,
       profilePath,
@@ -34,7 +34,7 @@ router.post("/api/jobs/:jobId/apply/run", async (req: Request, res: Response) =>
       currentUrl: job.url,
     });
 
-    applicationRunSteps.instance.create({
+    await applicationRunSteps.instance.create({
       id: `step-${runId}-init`,
       runId,
       type: "info",
@@ -58,34 +58,34 @@ router.post("/api/jobs/:jobId/apply/run", async (req: Request, res: Response) =>
   }
 });
 
-router.get("/api/jobs/:jobId/apply/latest", (req: Request, res: Response) => {
+router.get("/api/jobs/:jobId/apply/latest", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
-    const run = applicationRuns.instance.getLatestByJobId(jobId);
+    const run = await applicationRuns.instance.getLatestByJobId(jobId);
 
     if (!run) {
       res.json({ run: null, steps: [] });
       return;
     }
 
-    const steps = applicationRunSteps.instance.getByRunId(run.id);
+    const steps = await applicationRunSteps.instance.getByRunId(run.id);
     res.json({ run, steps });
   } catch (err: any) {
     sendError(res, err.message);
   }
 });
 
-router.get("/api/apply/runs/:runId", (req: Request, res: Response) => {
+router.get("/api/apply/runs/:runId", async (req: Request, res: Response) => {
   try {
     const runId = String(req.params.runId);
-    const run = applicationRuns.instance.getById(runId);
+    const run = await applicationRuns.instance.getById(runId);
 
     if (!run) {
       res.status(404).json({ error: "Run not found" });
       return;
     }
 
-    const steps = applicationRunSteps.instance.getByRunId(runId);
+    const steps = await applicationRunSteps.instance.getByRunId(runId);
     res.json({ run, steps });
   } catch (err: any) {
     sendError(res, err.message);
@@ -112,11 +112,11 @@ router.post("/api/apply/runs/:runId/cancel", async (req: Request, res: Response)
   }
 });
 
-router.get("/api/apply/runs/:runId/screenshots/:file", (req: Request, res: Response) => {
+router.get("/api/apply/runs/:runId/screenshots/:file", async (req: Request, res: Response) => {
   try {
     const runId = String(req.params.runId);
     const fileName = String(req.params.file);
-    const run = applicationRuns.instance.getById(runId);
+    const run = await applicationRuns.instance.getById(runId);
 
     if (!run) {
       res.status(404).json({ error: "Run not found" });

@@ -1,23 +1,27 @@
-import { sqliteTable, text, integer, uniqueIndex, index } from "drizzle-orm/sqlite-core";
+import { index, integer, pgTable, serial, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-export const companies = sqliteTable("companies", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const companies = pgTable("companies", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   ats: text("ats").notNull(),
   endpoint: text("endpoint").notNull(),
   active: integer("active").notNull().default(1),
-  discoveredAt: text("discovered_at").notNull().default(sql`(datetime('now'))`),
+  discoveredAt: text("discovered_at").notNull().default(sql`now()::text`),
   lastFetchedAt: text("last_fetched_at"),
   lastSuccessfulFetchAt: text("last_successful_fetch_at"),
   lastErrorAt: text("last_error_at"),
   lastError: text("last_error"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
-});
+  createdAt: text("created_at").notNull().default(sql`now()::text`),
+  updatedAt: text("updated_at").notNull().default(sql`now()::text`),
+}, (t) => ({
+  activeSlugIdx: index("idx_companies_active_slug").on(t.active, t.slug),
+  activeAtsIdx: index("idx_companies_active_ats").on(t.active, t.ats),
+  nameIdx: index("idx_companies_name").on(t.name),
+}));
 
-export const jobs = sqliteTable("jobs", {
+export const jobs = pgTable("jobs", {
   id: text("id").primaryKey(),
   companyId: integer("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
   externalId: text("external_id").notNull(),
@@ -38,11 +42,14 @@ export const jobs = sqliteTable("jobs", {
   companyIdx: index("idx_jobs_company").on(t.companyId),
   statusIdx: index("idx_jobs_status").on(t.status),
   updatedAtIdx: index("idx_jobs_updated_at").on(t.updatedAt),
+  updatedIdIdx: index("idx_jobs_updated_id").on(t.updatedAt, t.id),
   statusUpdatedAtIdx: index("idx_jobs_status_updated_at").on(t.status, t.updatedAt),
+  statusUpdatedIdIdx: index("idx_jobs_status_updated_id").on(t.status, t.updatedAt, t.id),
   companyUpdatedAtIdx: index("idx_jobs_company_updated_at").on(t.companyId, t.updatedAt),
+  companyStatusUpdatedIdx: index("idx_jobs_company_status_updated").on(t.companyId, t.status, t.updatedAt),
 }));
 
-export const jobFilters = sqliteTable("job_filters", {
+export const jobFilters = pgTable("job_filters", {
   id: text("id").primaryKey(),
   jobId: text("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
   contentHash: text("content_hash").notNull().default(""),
@@ -57,11 +64,13 @@ export const jobFilters = sqliteTable("job_filters", {
 }, (t) => ({
   jobHashIdx: index("idx_job_filters_job_hash").on(t.jobId, t.contentHash),
   jobCreatedAtIdx: index("idx_job_filters_job_created_at").on(t.jobId, t.createdAt),
+  jobCreatedIdIdx: index("idx_job_filters_job_created_id").on(t.jobId, t.createdAt, t.id),
   scoreIdx: index("idx_job_filters_score").on(t.score),
   verdictIdx: index("idx_job_filters_verdict").on(t.verdict),
+  verdictScoreIdx: index("idx_job_filters_verdict_score").on(t.verdict, t.score),
 }));
 
-export const applications = sqliteTable("applications", {
+export const applications = pgTable("applications", {
   id: text("id").primaryKey(),
   jobId: text("job_id").notNull().unique().references(() => jobs.id, { onDelete: "cascade" }),
   status: text("status").notNull().default("ready"),
@@ -70,9 +79,12 @@ export const applications = sqliteTable("applications", {
   notes: text("notes").notNull().default(""),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
-});
+}, (t) => ({
+  scoreCreatedIdx: index("idx_applications_score_created").on(t.score, t.createdAt),
+  createdIdx: index("idx_applications_created_at").on(t.createdAt),
+}));
 
-export const jobDocuments = sqliteTable("job_documents", {
+export const jobDocuments = pgTable("job_documents", {
   id: text("id").primaryKey(),
   jobId: text("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
   type: text("type").notNull(),
@@ -87,12 +99,12 @@ export const jobDocuments = sqliteTable("job_documents", {
   jobTypeIdx: index("idx_job_documents_job_type").on(t.jobId, t.type),
 }));
 
-export const searchConfig = sqliteTable("search_config", {
+export const searchConfig = pgTable("search_config", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
 });
 
-export const applicationRuns = sqliteTable("application_runs", {
+export const applicationRuns = pgTable("application_runs", {
   id: text("id").primaryKey(),
   jobId: text("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
   status: text("status").notNull().default("running"),
@@ -105,9 +117,10 @@ export const applicationRuns = sqliteTable("application_runs", {
   updatedAt: text("updated_at").notNull(),
 }, (t) => ({
   jobStatusIdx: index("idx_app_runs_job_status").on(t.jobId, t.status),
+  jobCreatedIdx: index("idx_app_runs_job_created").on(t.jobId, t.createdAt),
 }));
 
-export const taskRuns = sqliteTable("task_runs", {
+export const taskRuns = pgTable("task_runs", {
   id: text("id").primaryKey(),
   bullJobId: text("bull_job_id"),
   type: text("type").notNull(),
@@ -125,9 +138,11 @@ export const taskRuns = sqliteTable("task_runs", {
   statusIdx: index("idx_task_runs_status").on(t.status),
   typeIdx: index("idx_task_runs_type").on(t.type),
   dedupeKeyIdx: index("idx_task_runs_dedupe_key").on(t.dedupeKey),
+  createdIdx: index("idx_task_runs_created_at").on(t.createdAt),
+  statusCreatedIdx: index("idx_task_runs_status_created").on(t.status, t.createdAt),
 }));
 
-export const taskRunLogs = sqliteTable("task_run_logs", {
+export const taskRunLogs = pgTable("task_run_logs", {
   id: text("id").primaryKey(),
   runId: text("run_id").notNull().references(() => taskRuns.id, { onDelete: "cascade" }),
   level: text("level").notNull().default("info"),
@@ -136,9 +151,10 @@ export const taskRunLogs = sqliteTable("task_run_logs", {
   createdAt: text("created_at").notNull(),
 }, (t) => ({
   runIdx: index("idx_task_run_logs_run").on(t.runId),
+  runCreatedIdx: index("idx_task_run_logs_run_created").on(t.runId, t.createdAt),
 }));
 
-export const userProfile = sqliteTable("user_profile", {
+export const userProfile = pgTable("user_profile", {
   id: text("id").primaryKey().default("default"),
   fullName: text("full_name").notNull().default(""),
   email: text("email").notNull().default(""),
@@ -158,7 +174,7 @@ export const userProfile = sqliteTable("user_profile", {
   updatedAt: text("updated_at").notNull(),
 });
 
-export const userAnswers = sqliteTable("user_answers", {
+export const userAnswers = pgTable("user_answers", {
   id: text("id").primaryKey(),
   category: text("category").notNull().default(""),
   question: text("question").notNull().default(""),
@@ -166,9 +182,11 @@ export const userAnswers = sqliteTable("user_answers", {
   tagsJson: text("tags_json").notNull().default("[]"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
-});
+}, (t) => ({
+  categoryCreatedIdx: index("idx_user_answers_category_created").on(t.category, t.createdAt),
+}));
 
-export const applicationRunSteps = sqliteTable("application_run_steps", {
+export const applicationRunSteps = pgTable("application_run_steps", {
   id: text("id").primaryKey(),
   runId: text("run_id").notNull().references(() => applicationRuns.id, { onDelete: "cascade" }),
   type: text("type").notNull(),
@@ -179,4 +197,5 @@ export const applicationRunSteps = sqliteTable("application_run_steps", {
   createdAt: text("created_at").notNull(),
 }, (t) => ({
   runIdx: index("idx_app_run_steps_run").on(t.runId),
+  runCreatedIdx: index("idx_app_run_steps_run_created").on(t.runId, t.createdAt),
 }));

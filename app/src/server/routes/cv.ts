@@ -20,7 +20,7 @@ router.post("/api/cv/generate", (req: Request, res: Response) => {
       if (body.job) {
         job = body.job;
       } else if (body.jobId) {
-        const item = shortlist.instance.getByJobId(body.jobId);
+        const item = await shortlist.instance.getByJobId(body.jobId);
         if (item) {
           job = {
             id: body.jobId, site: "", title: item.title,

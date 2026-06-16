@@ -15,7 +15,7 @@ export type DiscoverResult = {
 
 export async function runDiscover(log?: PipelineLogger): Promise<DiscoverResult> {
   log?.({ type: "info", message: "Starting company discovery..." });
-  const config = loadSearchConfig();
+  const config = await loadSearchConfig();
   const queries = buildDorkQueries(config);
   const provider = (process.env.DISCOVERY_PROVIDER || "serpapi").toLowerCase();
   const hasSerpApi = Boolean(process.env.SERPAPI_KEY || process.env.SERP_API_KEY);
@@ -35,7 +35,7 @@ export async function runDiscover(log?: PipelineLogger): Promise<DiscoverResult>
     ? await discoverViaPlaywright(queries)
     : await discoverViaSerpApi(queries));
   console.log(`[discovery] deduplicated companies=${discovered.length}`);
-  const saved = saveDiscoveredCompanies(discovered);
+  const saved = await saveDiscoveredCompanies(discovered);
   console.log(`[discovery] save summary found=${saved.found} added=${saved.added} updated=${saved.updated} unchanged=${saved.unchanged}`);
 
   log?.({ type: "done", message: `Found ${discovered.length} companies, ${saved.added} new, ${saved.updated} updated` });

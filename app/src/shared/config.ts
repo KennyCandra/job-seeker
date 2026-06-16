@@ -3,8 +3,8 @@ import { searchConfig } from "../db";
 
 const CONFIG_KEY = "search_config";
 
-export function loadSearchConfig(): SearchConfig {
-  const raw = searchConfig.instance.getJson<SearchConfig | null>(CONFIG_KEY, null);
+export async function loadSearchConfig(): Promise<SearchConfig> {
+  const raw = await searchConfig.instance.getJson<SearchConfig | null>(CONFIG_KEY, null);
   if (raw) return raw;
   return {
     roles: ["fullstack engineer", "software engineer", "fullstack developer", "software developer"],
@@ -17,8 +17,8 @@ export function loadSearchConfig(): SearchConfig {
   };
 }
 
-export function saveSearchConfig(config: SearchConfig): void {
-  searchConfig.instance.setJson(CONFIG_KEY, config);
+export async function saveSearchConfig(config: SearchConfig): Promise<void> {
+  await searchConfig.instance.setJson(CONFIG_KEY, config);
 }
 
 export function loadLlmConfig(): LlmConfig {

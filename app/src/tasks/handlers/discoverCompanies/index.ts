@@ -3,11 +3,11 @@ import { runDiscover } from "../../../pipeline";
 
 export const discoverCompaniesHandler: HandlerFn = async (ctx) => {
   const { log, throwIfCancelled } = ctx;
-  throwIfCancelled();
+  await throwIfCancelled();
   const result = await runDiscover((pl) => {
     log("info", `[discovery] ${pl.type}: ${pl.message}`);
   });
-  throwIfCancelled();
+  await throwIfCancelled();
   return {
     source: result.source,
     found: result.found,

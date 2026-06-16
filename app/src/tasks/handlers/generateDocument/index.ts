@@ -14,13 +14,13 @@ export const generateDocumentHandler: HandlerFn = async (ctx) => {
     throw new Error("jobId and valid documentType (cv/cover_letter/recommendation) required");
   }
 
-  const jobRow = jobs.instance.getById(jobId);
+  const jobRow = await jobs.instance.getById(jobId);
   if (!jobRow) throw new Error(`Job not found: ${jobId}`);
 
-  const existingDocs = jobDocuments.instance.getByJobId(jobId);
+  const existingDocs = await jobDocuments.instance.getByJobId(jobId);
   const hasExisting = existingDocs.some((d: any) => d.type === docType);
   if (hasExisting && !force) {
-    log("info", `${docType} already exists for job ${jobId}`);
+    await log("info", `${docType} already exists for job ${jobId}`);
     return { exists: true, type: docType };
   }
 
@@ -35,8 +35,8 @@ export const generateDocumentHandler: HandlerFn = async (ctx) => {
   };
 
   const client = createClient();
-  log("info", `Generating ${docType} for job ${jobId} (${job.company} - ${job.title})`);
-  throwIfCancelled();
+  await log("info", `Generating ${docType} for job ${jobId} (${job.company} - ${job.title})`);
+  await throwIfCancelled();
 
   if (docType === "cv") {
     await generateCvDocument(job, Number(payload.score) || 0, client);
@@ -46,7 +46,7 @@ export const generateDocumentHandler: HandlerFn = async (ctx) => {
     await generateRecommendationDocument(job, client);
   }
 
-  throwIfCancelled();
-  log("info", `${docType} generated for job ${jobId}`);
+  await throwIfCancelled();
+  await log("info", `${docType} generated for job ${jobId}`);
   return { ok: true, type: docType };
 };

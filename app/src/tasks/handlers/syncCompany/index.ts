@@ -10,12 +10,12 @@ export const syncCompanyHandler: HandlerFn = async (ctx) => {
   const doFilter = payload.filter === true;
 
   if (!companySlug) throw new Error("companySlug is required");
-  log("info", `Syncing company: ${companySlug}`);
+  await log("info", `Syncing company: ${companySlug}`);
 
-  const company = companies.instance.getBySlug(companySlug);
+  const company = await companies.instance.getBySlug(companySlug);
   if (!company) throw new Error(`Company not found: ${companySlug}`);
 
-  throwIfCancelled();
+  await throwIfCancelled();
   const sync = await syncCompany(companySlug, company);
   const summary: Record<string, unknown> = {
     company: company.name,
@@ -30,17 +30,17 @@ export const syncCompanyHandler: HandlerFn = async (ctx) => {
 
   if (doFilter) {
     const candidates = [...sync.newJobs, ...sync.changedJobs];
-    log("info", `Running normal filter on ${candidates.length} candidates`);
+    await log("info", `Running normal filter on ${candidates.length} candidates`);
     if (candidates.length > 0) {
-      const config = loadSearchConfig();
+      const config = await loadSearchConfig();
       let accepted = 0;
       for (const [index, job] of candidates.entries()) {
-        throwIfCancelled();
+        await throwIfCancelled();
         const result = normalFilterJob(job, config);
-        const row = jobs.instance.getById(job.id);
-        saveNormalFilterResult(job.id, row?.contentHash || "", result, index);
+        const row = await jobs.instance.getById(job.id);
+        await saveNormalFilterResult(job.id, row?.contentHash || "", result, index);
         if (result.filter.verdict === "accept" && result.filter.score >= config.min_score) accepted += 1;
-        log("info", `Job ${job.id}: ${result.filter.verdict} score=${result.filter.score}`);
+        await log("info", `Job ${job.id}: ${result.filter.verdict} score=${result.filter.score}`);
       }
       summary.filtered = candidates.length;
       summary.accepted = accepted;

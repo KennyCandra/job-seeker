@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { Repository } from "../repository";
 import { applicationRunSteps } from "../schema";
 
@@ -26,8 +26,8 @@ export type CreateApplicationRunStepInput = {
 };
 
 export class ApplicationRunStepsRepository extends Repository {
-  create(input: CreateApplicationRunStepInput): void {
-    this.db.insert(applicationRunSteps)
+  async create(input: CreateApplicationRunStepInput): Promise<void> {
+    await this.db.insert(applicationRunSteps)
       .values({
         id: input.id,
         runId: input.runId,
@@ -37,14 +37,12 @@ export class ApplicationRunStepsRepository extends Repository {
         screenshotPath: input.screenshotPath ?? null,
         payload: input.payload ?? "{}",
         createdAt: this.now(),
-      })
-      .run();
+      });
   }
 
-  getByRunId(runId: string): ApplicationRunStepRow[] {
+  async getByRunId(runId: string): Promise<ApplicationRunStepRow[]> {
     return this.db.select().from(applicationRunSteps)
       .where(eq(applicationRunSteps.runId, runId))
-      .orderBy(applicationRunSteps.createdAt)
-      .all() as ApplicationRunStepRow[];
+      .orderBy(asc(applicationRunSteps.createdAt)) as Promise<ApplicationRunStepRow[]>;
   }
 }

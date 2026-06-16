@@ -13,14 +13,14 @@ export const runApplyHandler: HandlerFn = async (ctx) => {
     throw new Error("applyRunId, jobId, and url are required");
   }
 
-  const job = jobs.instance.getById(jobId);
+  const job = await jobs.instance.getById(jobId);
   if (!job) throw new Error(`Job not found: ${jobId}`);
 
-  const applyRun = applicationRuns.instance.getById(applyRunId);
+  const applyRun = await applicationRuns.instance.getById(applyRunId);
   if (!applyRun) throw new Error(`Apply run not found: ${applyRunId}`);
 
-  log("info", `Starting apply automation for ${job.companyName} - ${job.title}`);
-  throwIfCancelled();
+  await log("info", `Starting apply automation for ${job.companyName} - ${job.title}`);
+  await throwIfCancelled();
 
   try {
     const result = await runApply({
@@ -32,11 +32,11 @@ export const runApplyHandler: HandlerFn = async (ctx) => {
       stepsRepo: applicationRunSteps.instance,
     });
 
-    throwIfCancelled();
-    log("info", `Apply automation finished with status ${result.status}`);
+    await throwIfCancelled();
+    await log("info", `Apply automation finished with status ${result.status}`);
     return result;
   } catch (err: any) {
-    applicationRuns.instance.updateStatus(applyRunId, "failed", { error: err.message });
+    await applicationRuns.instance.updateStatus(applyRunId, "failed", { error: err.message });
     throw err;
   }
 };

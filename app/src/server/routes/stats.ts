@@ -1,37 +1,37 @@
 import { Router, type Request, type Response } from "express";
-import { applications, companies, shortlist, savedJobs, jobDocuments } from "../../db";
+import { getSql } from "../../db/connection";
 
 const router = Router();
 
-router.get("/api/stats", (_req: Request, res: Response) => {
+router.get("/api/stats", async (_req: Request, res: Response) => {
   try {
-    const allApps = applications.instance.getAll();
-    const shortlistItems = shortlist.instance.getAll();
-    const allCompanies = companies.instance.getAll();
-    const savedJobsList = savedJobs.instance.getAll();
+    const [row] = await getSql().unsafe(`
+      SELECT
+        (SELECT COUNT(*)::int FROM companies) AS companies,
+        (SELECT COUNT(*)::int FROM jobs) AS jobs,
+        (SELECT COUNT(*)::int FROM jobs WHERE status = 'open') AS "openJobs",
+        (SELECT COUNT(*)::int FROM jobs WHERE status = 'closed') AS "closedJobs",
+        (SELECT COUNT(DISTINCT job_id)::int FROM job_filters) AS shortlist,
+        (SELECT COUNT(*)::int FROM applications) AS applications,
+        (SELECT COUNT(*)::int FROM job_documents) AS "docsGenerated",
+        (SELECT COUNT(*)::int FROM job_documents WHERE type = 'cv') AS "cvCount",
+        (SELECT COUNT(*)::int FROM job_documents WHERE type = 'cover_letter') AS "coverLetterCount",
+        (SELECT COUNT(*)::int FROM job_documents WHERE type = 'recommendation') AS "recommendationCount"
+    `);
 
-    const openJobs = savedJobsList.filter((j) => j.status === "open").length;
-    const closedJobs = savedJobsList.filter((j) => j.status === "closed").length;
-
-    // Count unique jobs with documents per type
-    const allDocs = savedJobsList.flatMap((j) => jobDocuments.instance.getByJobId(j.id));
-    const docsGenerated = allDocs.length;
-    const cvCount = allDocs.filter((d: any) => d.type === "cv").length;
-    const coverLetterCount = allDocs.filter((d: any) => d.type === "cover_letter").length;
-    const recommendationCount = allDocs.filter((d: any) => d.type === "recommendation").length;
-
+    const jobs = Number(row?.jobs || 0);
     res.json({
-      companies: allCompanies.length,
-      jobs: savedJobsList.length,
-      openJobs,
-      closedJobs,
-      shortlist: shortlistItems.length,
-      applications: allApps.length,
-      savedJobs: savedJobsList.length,
-      docsGenerated,
-      cvCount,
-      coverLetterCount,
-      recommendationCount,
+      companies: Number(row?.companies || 0),
+      jobs,
+      openJobs: Number(row?.openJobs || 0),
+      closedJobs: Number(row?.closedJobs || 0),
+      shortlist: Number(row?.shortlist || 0),
+      applications: Number(row?.applications || 0),
+      savedJobs: jobs,
+      docsGenerated: Number(row?.docsGenerated || 0),
+      cvCount: Number(row?.cvCount || 0),
+      coverLetterCount: Number(row?.coverLetterCount || 0),
+      recommendationCount: Number(row?.recommendationCount || 0),
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

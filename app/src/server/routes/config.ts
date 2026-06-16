@@ -4,19 +4,19 @@ import type { SearchConfig } from "../../shared/types";
 
 const router = Router();
 
-router.get("/api/config", (_req: Request, res: Response) => {
+router.get("/api/config", async (_req: Request, res: Response) => {
   try {
-    const config = loadSearchConfig();
+    const config = await loadSearchConfig();
     res.json(config);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.put("/api/config", (req: Request, res: Response) => {
+router.put("/api/config", async (req: Request, res: Response) => {
   try {
     const config = req.body as SearchConfig;
-    saveSearchConfig(config);
+    await saveSearchConfig(config);
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

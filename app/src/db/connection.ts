@@ -1,47 +1,44 @@
-import { Database as SqliteDb } from "bun:sqlite";
-import { drizzle, type BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
-import { join } from "path";
-import { existsSync, mkdirSync } from "fs";
-import { migrate } from "./migrate";
+import postgres from "postgres";
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
 
-const APP_ROOT = join(import.meta.dir, "..", "..", "..");
+const DEFAULT_DATABASE_URL = "postgres://cv_autopilot:cv_autopilot@localhost:5432/cv_autopilot";
 
-export type DrizzleDb = BunSQLiteDatabase<typeof schema>;
+export type DrizzleDb = PostgresJsDatabase<typeof schema>;
 
 export type DbOptions = {
-  path?: string;
-  enableWal?: boolean;
+  url?: string;
 };
 
+let _sql: postgres.Sql | null = null;
+let _defaultDb: DrizzleDb | null = null;
+
 export function createConnection(options: DbOptions = {}): DrizzleDb {
-  const dbPath = options.path || process.env.DATABASE_PATH || join(APP_ROOT, "data", "cv-autopilot.db");
-  const dir = join(dbPath, "..");
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  const raw = new SqliteDb(dbPath);
-  if (options.enableWal !== false) raw.exec("PRAGMA journal_mode = WAL");
-  return drizzle(raw, { schema });
+  const url = options.url || process.env.DATABASE_URL || DEFAULT_DATABASE_URL;
+  _sql = postgres(url, { max: Number(process.env.DATABASE_POOL_SIZE || 10) });
+  return drizzle(_sql, { schema });
 }
 
 export function createDatabase(options: DbOptions = {}): DrizzleDb {
-  const d = createConnection(options);
-  migrate(d);
-  return d;
+  return createConnection(options);
 }
-
-let _defaultDb: DrizzleDb | null = null;
 
 export function getDb(): DrizzleDb {
   if (!_defaultDb) _defaultDb = createDatabase();
   return _defaultDb;
 }
 
-export function resetDb(): void {
-  if (_defaultDb) {
-    const raw = (_defaultDb as any).$client || (_defaultDb as any).session?.client;
-    if (raw?.close) raw.close();
-    _defaultDb = null;
+export function getSql(): postgres.Sql {
+  if (!_sql) getDb();
+  return _sql!;
+}
+
+export async function resetDb(): Promise<void> {
+  if (_sql) {
+    await _sql.end({ timeout: 5 });
+    _sql = null;
   }
+  _defaultDb = null;
 }
 
 export const db = new Proxy({} as DrizzleDb, {
@@ -49,5 +46,3 @@ export const db = new Proxy({} as DrizzleDb, {
     return (getDb() as any)[prop];
   },
 });
-
-export type { Database } from "bun:sqlite";

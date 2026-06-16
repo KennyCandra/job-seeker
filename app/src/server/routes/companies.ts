@@ -5,9 +5,9 @@ import { enqueueTask } from "../../queue/enqueue";
 
 const router = Router();
 
-router.get("/api/companies", (_req: Request, res: Response) => {
+router.get("/api/companies", async (_req: Request, res: Response) => {
   try {
-    const all = companies.instance.getAll();
+    const all = await companies.instance.getAll();
     res.json(all);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -24,32 +24,32 @@ router.post("/api/companies/discover", async (_req: Request, res: Response) => {
   }
 });
 
-router.post("/api/companies", (req: Request, res: Response) => {
+router.post("/api/companies", async (req: Request, res: Response) => {
   try {
     const { name, ats, boardUrl, endpoint } = req.body as { name: string; ats: AtsPlatform; boardUrl?: string; endpoint?: string };
     if (!name || !ats) { res.status(400).json({ error: "name and ats required" }); return; }
-    const ok = companies.instance.save({ name, ats, endpoint: endpoint || boardUrl });
+    const ok = await companies.instance.save({ name, ats, endpoint: endpoint || boardUrl });
     res.status(201).json({ ok });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.patch("/api/companies/:slug/active", (req: Request, res: Response) => {
+router.patch("/api/companies/:slug/active", async (req: Request, res: Response) => {
   try {
     const companySlug = String(req.params.slug);
     const { active } = req.body as { active: boolean };
-    if (active) companies.instance.reactivate(companySlug);
-    else companies.instance.deactivate(companySlug);
+    if (active) await companies.instance.reactivate(companySlug);
+    else await companies.instance.deactivate(companySlug);
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.delete("/api/companies/:slug", (req: Request, res: Response) => {
+router.delete("/api/companies/:slug", async (req: Request, res: Response) => {
   try {
-    companies.instance.deactivate(String(req.params.slug));
+    await companies.instance.deactivate(String(req.params.slug));
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -61,7 +61,7 @@ router.post("/api/companies/:slug/fetch", async (req: Request, res: Response) =>
     const companySlug = String(req.params.slug);
     const { filter: doFilter } = req.body as { filter?: boolean };
 
-    const company = companies.instance.getBySlug(companySlug);
+    const company = await companies.instance.getBySlug(companySlug);
     if (!company) {
       res.status(404).json({ error: "Company not found" });
       return;

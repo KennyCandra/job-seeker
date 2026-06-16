@@ -16,14 +16,14 @@ export function computeContentHash(input: { title: string; location: string; url
     .digest("hex");
 }
 
-export function classifyJobs(
+export async function classifyJobs(
   companyId: number,
   companySlug: string,
   companyName: string,
   ats: string,
   incoming: NormalizedJobInput[],
-): JobSyncResult {
-  const existingJobs = jobsRepo.instance.getByCompanyId(companyId);
+): Promise<JobSyncResult> {
+  const existingJobs = await jobsRepo.instance.getByCompanyId(companyId);
   const existingByExternalId = new Map(existingJobs.map((j) => [j.externalId, j]));
 
   const seenExternalIds = new Set<string>();

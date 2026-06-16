@@ -129,12 +129,9 @@ export class Database {
   public taskRunLogs: TaskRunLogsRepository;
   public userProfile: UserProfileRepository;
   public userAnswers: UserAnswersRepository;
-  public raw: import("bun:sqlite").Database;
 
-  constructor(opts: { path?: string; enableWal?: boolean; autoMigrate?: boolean } = {}) {
+  constructor(opts: { url?: string } = {}) {
     const conn = createConnection(opts);
-    if (opts.autoMigrate !== false) migrate(conn);
-    this.raw = ((conn as any).$client || (conn as any).session?.client) as import("bun:sqlite").Database;
     this.applications = new ApplicationsRepository(conn);
     this.companies = new CompaniesRepository(conn);
     this.shortlist = new ShortlistRepository(conn);
@@ -151,12 +148,12 @@ export class Database {
     this.userAnswers = new UserAnswersRepository(conn);
   }
 
-  static open(opts: { path?: string; enableWal?: boolean } = {}): Database {
+  static open(opts: { url?: string } = {}): Database {
     return new Database(opts);
   }
 
-  close(): void {
-    try { this.raw.close(); } catch {}
+  async close(): Promise<void> {
+    await resetDb();
   }
 }
 

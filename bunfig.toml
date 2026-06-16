@@ -1,2 +1,3 @@
 [install]
 linkWorkspacePackages = true
+omit = ["optional", "peer"]

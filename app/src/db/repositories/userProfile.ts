@@ -40,37 +40,37 @@ export type UpdateUserProfileInput = {
 };
 
 export class UserProfileRepository extends Repository {
-  get(): UserProfileRow | undefined {
-    return this.db.select().from(userProfile).where(eq(userProfile.id, "default")).get() as UserProfileRow | undefined;
+  async get(): Promise<UserProfileRow | undefined> {
+    const [row] = await this.db.select().from(userProfile).where(eq(userProfile.id, "default")).limit(1);
+    return row as UserProfileRow | undefined;
   }
 
-  upsert(input: UpdateUserProfileInput): void {
+  async upsert(input: UpdateUserProfileInput): Promise<void> {
     const now = new Date().toISOString();
-    const existing = this.get();
-    if (existing) {
-      const updates: Record<string, any> = { ...input, updatedAt: now };
-      Object.keys(updates).forEach((k) => { if (updates[k] === undefined) delete updates[k]; });
-      this.db.update(userProfile).set(updates).where(eq(userProfile.id, "default")).run();
-    } else {
-      this.db.insert(userProfile).values({
-        id: "default",
-        fullName: input.fullName ?? "",
-        email: input.email ?? "",
-        phone: input.phone ?? "",
-        location: input.location ?? "",
-        linkedin: input.linkedin ?? "",
-        portfolio: input.portfolio ?? "",
-        github: input.github ?? "",
-        headline: input.headline ?? "",
-        summary: input.summary ?? "",
-        skillsJson: input.skillsJson ?? "[]",
-        experienceJson: input.experienceJson ?? "[]",
-        projectsJson: input.projectsJson ?? "[]",
-        educationJson: input.educationJson ?? "[]",
-        preferencesJson: input.preferencesJson ?? "{}",
-        createdAt: now,
+    await this.db.insert(userProfile).values({
+      id: "default",
+      fullName: input.fullName ?? "",
+      email: input.email ?? "",
+      phone: input.phone ?? "",
+      location: input.location ?? "",
+      linkedin: input.linkedin ?? "",
+      portfolio: input.portfolio ?? "",
+      github: input.github ?? "",
+      headline: input.headline ?? "",
+      summary: input.summary ?? "",
+      skillsJson: input.skillsJson ?? "[]",
+      experienceJson: input.experienceJson ?? "[]",
+      projectsJson: input.projectsJson ?? "[]",
+      educationJson: input.educationJson ?? "[]",
+      preferencesJson: input.preferencesJson ?? "{}",
+      createdAt: now,
+      updatedAt: now,
+    }).onConflictDoUpdate({
+      target: userProfile.id,
+      set: {
+        ...input,
         updatedAt: now,
-      }).run();
-    }
+      },
+    });
   }
 }

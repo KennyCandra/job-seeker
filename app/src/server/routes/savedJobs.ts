@@ -10,10 +10,10 @@ import { sendError } from "../middleware/response";
 
 const router = Router();
 
-router.get("/api/saved-jobs", (_req: Request, res: Response) => {
+router.get("/api/saved-jobs", async (_req: Request, res: Response) => {
   try {
-    const all = savedJobs.instance.getAll();
-    const processedIds = new Set(applications.instance.getProcessedJobIds());
+    const all = await savedJobs.instance.getAll();
+    const processedIds = new Set(await applications.instance.getProcessedJobIds());
     const withStatus = all.map((j) => ({ ...j, processed: processedIds.has(j.jobId) }));
     res.json(withStatus);
   } catch (err: any) {
@@ -21,11 +21,11 @@ router.get("/api/saved-jobs", (_req: Request, res: Response) => {
   }
 });
 
-router.get("/api/saved-jobs/:company", (req: Request, res: Response) => {
+router.get("/api/saved-jobs/:company", async (req: Request, res: Response) => {
   try {
-    const jobs = savedJobs.instance.getByCompany(String(req.params.company));
-    const processedIds = new Set(applications.instance.getProcessedJobIds());
-    const withStatus = jobs.map((j) => ({ ...j, processed: processedIds.has(j.jobId) }));
+    const jobsList = await savedJobs.instance.getByCompany(String(req.params.company));
+    const processedIds = new Set(await applications.instance.getProcessedJobIds());
+    const withStatus = jobsList.map((j) => ({ ...j, processed: processedIds.has(j.jobId) }));
     res.json(withStatus);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -36,10 +36,10 @@ router.post("/api/saved-jobs/:companySlug/:jobId/filter", async (req: Request, r
   try {
     const companySlug = String(req.params.companySlug);
     const jobId = String(req.params.jobId);
-    const saved = savedJobs.instance.get(companySlug, jobId);
+    const saved = await savedJobs.instance.get(companySlug, jobId);
     if (!saved) return sendError(res, "Saved job not found", 404);
 
-    const company = companies.instance.getBySlug(companySlug);
+    const company = await companies.instance.getBySlug(companySlug);
     const companyName = company?.name || companySlug;
 
     const job: JobRecord = {
@@ -48,7 +48,7 @@ router.post("/api/saved-jobs/:companySlug/:jobId/filter", async (req: Request, r
       url: saved.url, description: saved.description,
     };
 
-    const config = loadSearchConfig();
+    const config = await loadSearchConfig();
     const client = createClient();
     const filterMd = readText(join(SKILLS_DIR, "job_filter.md"));
     const result = await filterJob(client, job, filterMd, config.targetCompanies);
@@ -57,7 +57,7 @@ router.post("/api/saved-jobs/:companySlug/:jobId/filter", async (req: Request, r
       return res.json({ accepted: false, error: "Filter failed" });
     }
 
-    jobFilters.instance.save({
+    await jobFilters.instance.save({
       id: `filter-${jobId}-${Date.now()}`,
       jobId,
       verdict: result.filter.verdict,

@@ -12,16 +12,16 @@ import { sseSetup, sseSend } from "../middleware/sse";
 
 const router = Router();
 
-router.get("/api/applications", (_req: Request, res: Response) => {
+router.get("/api/applications", async (_req: Request, res: Response) => {
   try {
-    const all = applications.instance.getAll();
+    const all = await applications.instance.getAll();
     res.json(all);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.patch("/api/applications/:jobId/status", (req: Request, res: Response) => {
+router.patch("/api/applications/:jobId/status", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
     const { status } = req.body as { status: AppStatus };
@@ -33,25 +33,25 @@ router.patch("/api/applications/:jobId/status", (req: Request, res: Response) =>
       res.status(400).json({ error: `Invalid status: ${status}` });
       return;
     }
-    applications.instance.updateStatus(jobId, status);
+    await applications.instance.updateStatus(jobId, status);
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.delete("/api/applications/:jobId", (req: Request, res: Response) => {
+router.delete("/api/applications/:jobId", async (req: Request, res: Response) => {
   try {
-    applications.instance.delete(String(req.params.jobId));
+    await applications.instance.delete(String(req.params.jobId));
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.get("/api/applications/:jobId/pdf", (req: Request, res: Response) => {
+router.get("/api/applications/:jobId/pdf", async (req: Request, res: Response) => {
   try {
-    const appRow = applications.instance.getByJobId(String(req.params.jobId));
+    const appRow = await applications.instance.getByJobId(String(req.params.jobId));
     if (!appRow) { res.status(404).json({ error: "Application not found" }); return; }
 
     const companySlug = slug(appRow.company);
@@ -80,7 +80,7 @@ router.post("/api/applications/:jobId/generate", (req: Request, res: Response) =
     try {
       const jobId = String(req.params.jobId);
       const force = req.query.force === "true";
-      const appRow = applications.instance.getByJobId(jobId);
+      const appRow = await applications.instance.getByJobId(jobId);
       if (!appRow) {
         sseSend(res, "log", { type: "error", message: "Application not found" });
         sseSend(res, "done", { error: "Application not found" });
@@ -89,7 +89,7 @@ router.post("/api/applications/:jobId/generate", (req: Request, res: Response) =
       }
 
       const companySlug = slug(appRow.company);
-      const saved = savedJobs.instance.get(companySlug, jobId);
+      const saved = await savedJobs.instance.get(companySlug, jobId);
 
       const existingPdf = (() => {
         try {

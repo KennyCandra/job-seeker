@@ -12,9 +12,9 @@ export const smartFilterJobHandler: HandlerFn = async (ctx) => {
   const { log, payload, throwIfCancelled } = ctx;
   const jobId = String(payload.jobId || "");
   if (!jobId) throw new Error("jobId is required");
-  const jobRow = jobs.instance.getById(jobId);
+  const jobRow = await jobs.instance.getById(jobId);
   if (!jobRow) throw new Error(`Job not found: ${jobId}`);
-  const latestFilter = jobFilters.instance.getByJobId(jobId)[0];
+  const latestFilter = (await jobFilters.instance.getByJobId(jobId))[0];
   if (!latestFilter || latestFilter.verdict !== "accept") throw new Error("Normal filter must accept first");
   const job: JobRecord = {
     id: jobRow.id,
@@ -25,13 +25,13 @@ export const smartFilterJobHandler: HandlerFn = async (ctx) => {
     url: jobRow.url,
     description: jobRow.description,
   };
-  const config = loadSearchConfig();
+  const config = await loadSearchConfig();
   const client = createClient();
   const filterMd = readText(join(SKILLS_DIR, "job_filter.md"));
-  throwIfCancelled();
+  await throwIfCancelled();
   const result = await filterJob(client, job, filterMd, config.targetCompanies);
   if (!result) throw new Error("Smart filter returned no result");
-  jobFilters.instance.save({
+  await jobFilters.instance.save({
     id: `smart-filter-${jobId}-${Date.now()}`,
     jobId,
     contentHash: jobRow.contentHash,
@@ -43,6 +43,6 @@ export const smartFilterJobHandler: HandlerFn = async (ctx) => {
     model: process.env.OPENCODE_MODEL || process.env.LLM_MODEL || "llm",
     promptVersion: "smart-filter-v1",
   });
-  log("info", `Smart filter done: ${result.filter.verdict} score=${result.filter.score}`);
+  await log("info", `Smart filter done: ${result.filter.verdict} score=${result.filter.score}`);
   return { jobId, verdict: result.filter.verdict, score: result.filter.score };
 };

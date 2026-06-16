@@ -3,11 +3,11 @@ import { runFetchAndFilter } from "../../../pipeline";
 
 export const syncAllJobsHandler: HandlerFn = async (ctx) => {
   const { log, throwIfCancelled } = ctx;
-  throwIfCancelled();
+  await throwIfCancelled();
   const result = await runFetchAndFilter((pl) => {
     log("info", `[sync] ${pl.type}: ${pl.message}`);
   });
-  throwIfCancelled();
+  await throwIfCancelled();
   return {
     fetched: result.summary.fetched,
     newJobs: result.summary.newJobs,

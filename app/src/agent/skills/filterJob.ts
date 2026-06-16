@@ -17,7 +17,7 @@ export const filterJob: AgentSkill = {
     const jobId = args.job_id as string;
     if (!jobId) return { type: "error", message: "job_id required." };
 
-    const item = shortlist.instance.getByJobId(jobId);
+    const item = await shortlist.instance.getByJobId(jobId);
     if (!item) return { type: "error", message: "Job not found in shortlist." };
 
     const job: JobRecord = {
@@ -26,7 +26,7 @@ export const filterJob: AgentSkill = {
       url: item.applyUrl, description: "",
     };
 
-    const config = loadSearchConfig();
+    const config = await loadSearchConfig();
     const client = createClient();
     const filterMd = readText(join(SKILLS_DIR, "job_filter.md"));
     const result = await filterJobFromPipeline(client, job, filterMd, config.targetCompanies);
@@ -35,7 +35,7 @@ export const filterJob: AgentSkill = {
       return { type: "error", message: "Filter evaluation failed." };
     }
 
-    jobFilters.instance.save({
+    await jobFilters.instance.save({
       id: `filter-${jobId}-${Date.now()}`,
       jobId,
       verdict: result.filter.verdict,

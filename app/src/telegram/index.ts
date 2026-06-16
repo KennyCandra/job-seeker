@@ -2,13 +2,15 @@ import { Bot } from "grammy";
 import { handleMessage, type SessionState } from "./router";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-if (!TOKEN) console.warn("TELEGRAM_BOT_TOKEN not set — bot disabled");
 
 const bot = TOKEN ? new Bot(TOKEN) : null;
 const sessions = new Map<number, SessionState>();
 
 function startBot() {
-  if (!bot) return;
+  if (!bot) {
+    console.warn("TELEGRAM_BOT_TOKEN not set; bot disabled");
+    return;
+  }
 
   bot.catch((err) => console.error("Bot error:", err.error));
 
@@ -28,8 +30,9 @@ function startBot() {
     await handleMessage(text, ctx, session);
   });
 
-  bot.start().catch((err) => console.error("[bot] Start failed:", err));
-  console.log("[bot] Started");
+  bot.start({
+    onStart: () => console.log("[bot] Started"),
+  }).catch((err) => console.error("[bot] Start failed:", err));
 }
 
 export { startBot };

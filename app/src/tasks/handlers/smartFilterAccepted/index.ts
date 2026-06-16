@@ -11,18 +11,18 @@ import type { JobRecord } from "../../../shared/types";
 export const smartFilterAcceptedHandler: HandlerFn = async (ctx) => {
   const { log, payload, throwIfCancelled, progress } = ctx;
   const force = payload.force === true;
-  const allJobs = jobs.instance.getAll();
-  const config = loadSearchConfig();
+  const allJobs = await jobs.instance.getAll();
+  const config = await loadSearchConfig();
   const client = createClient();
   const filterMd = readText(join(SKILLS_DIR, "job_filter.md"));
   const summary = { total: allJobs.length, candidates: 0, processed: 0, skippedNotAccepted: 0, skippedExistingSmart: 0, accepted: 0, rejected: 0, failed: 0 };
 
-  log("info", `Smart filter accepted: ${allJobs.length} total jobs`);
+  await log("info", `Smart filter accepted: ${allJobs.length} total jobs`);
 
   for (const [index, jobRow] of allJobs.entries()) {
-    throwIfCancelled();
+    await throwIfCancelled();
     if (index % 25 === 0) await progress({ current: index, total: allJobs.length, processed: summary.processed });
-    const filters = jobFilters.instance.getByJobId(jobRow.id);
+    const filters = await jobFilters.instance.getByJobId(jobRow.id);
     const latestFilter = filters[0];
     const hasSmartFilter = filters.some((f) => f.promptVersion === "smart-filter-v1" || String(f.id).startsWith("smart-filter-"));
     if (!latestFilter || latestFilter.verdict !== "accept") { summary.skippedNotAccepted += 1; continue; }
@@ -39,11 +39,11 @@ export const smartFilterAcceptedHandler: HandlerFn = async (ctx) => {
       description: jobRow.description,
     };
 
-    log("info", `Smart filtering job=${job.id} company=${job.company}`);
+    await log("info", `Smart filtering job=${job.id} company=${job.company}`);
     try {
       const result = await filterJob(client, job, filterMd, config.targetCompanies);
       if (!result) { summary.failed += 1; continue; }
-      jobFilters.instance.save({
+      await jobFilters.instance.save({
         id: `smart-filter-${job.id}-${Date.now()}`,
         jobId: job.id,
         contentHash: jobRow.contentHash,
@@ -58,10 +58,10 @@ export const smartFilterAcceptedHandler: HandlerFn = async (ctx) => {
       summary.processed += 1;
       if (result.filter.verdict === "accept") summary.accepted += 1;
       else summary.rejected += 1;
-      log("info", `Job ${job.id}: ${result.filter.verdict} score=${result.filter.score}`);
+      await log("info", `Job ${job.id}: ${result.filter.verdict} score=${result.filter.score}`);
     } catch (err: any) {
       summary.failed += 1;
-      log("error", `Job ${job.id} failed: ${err.message}`);
+      await log("error", `Job ${job.id} failed: ${err.message}`);
     }
   }
 

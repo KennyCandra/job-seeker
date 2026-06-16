@@ -20,25 +20,25 @@ export type CreateUserAnswerInput = {
 };
 
 export class UserAnswersRepository extends Repository {
-  getAll(): UserAnswerRow[] {
-    return this.db.select().from(userAnswers).orderBy(desc(userAnswers.createdAt)).all() as UserAnswerRow[];
+  async getAll(): Promise<UserAnswerRow[]> {
+    return this.db.select().from(userAnswers).orderBy(desc(userAnswers.createdAt)) as Promise<UserAnswerRow[]>;
   }
 
-  getByCategory(category: string): UserAnswerRow[] {
+  async getByCategory(category: string): Promise<UserAnswerRow[]> {
     return this.db.select().from(userAnswers)
       .where(eq(userAnswers.category, category))
-      .orderBy(desc(userAnswers.createdAt))
-      .all() as UserAnswerRow[];
+      .orderBy(desc(userAnswers.createdAt)) as Promise<UserAnswerRow[]>;
   }
 
-  getById(id: string): UserAnswerRow | undefined {
-    return this.db.select().from(userAnswers).where(eq(userAnswers.id, id)).get() as UserAnswerRow | undefined;
+  async getById(id: string): Promise<UserAnswerRow | undefined> {
+    const [row] = await this.db.select().from(userAnswers).where(eq(userAnswers.id, id)).limit(1);
+    return row as UserAnswerRow | undefined;
   }
 
-  create(input: CreateUserAnswerInput): string {
+  async create(input: CreateUserAnswerInput): Promise<string> {
     const id = `ans_${shortId()}`;
     const now = new Date().toISOString();
-    this.db.insert(userAnswers).values({
+    await this.db.insert(userAnswers).values({
       id,
       category: input.category,
       question: input.question,
@@ -46,18 +46,18 @@ export class UserAnswersRepository extends Repository {
       tagsJson: input.tagsJson ?? "[]",
       createdAt: now,
       updatedAt: now,
-    }).run();
+    });
     return id;
   }
 
-  update(id: string, input: Partial<CreateUserAnswerInput>): void {
+  async update(id: string, input: Partial<CreateUserAnswerInput>): Promise<void> {
     const updates: Record<string, any> = { ...input, updatedAt: new Date().toISOString() };
     Object.keys(updates).forEach((k) => { if (updates[k] === undefined) delete updates[k]; });
-    this.db.update(userAnswers).set(updates).where(eq(userAnswers.id, id)).run();
+    await this.db.update(userAnswers).set(updates).where(eq(userAnswers.id, id));
   }
 
-  delete(id: string): void {
-    this.db.delete(userAnswers).where(eq(userAnswers.id, id)).run();
+  async delete(id: string): Promise<void> {
+    await this.db.delete(userAnswers).where(eq(userAnswers.id, id));
   }
 }
 

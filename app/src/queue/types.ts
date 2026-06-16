@@ -56,6 +56,6 @@ export interface TaskHandlerContext {
   payload: Record<string, unknown>;
   log: (level: string, message: string, meta?: Record<string, unknown>) => Promise<void>;
   progress: (value: Record<string, unknown>) => Promise<void>;
-  isCancelled: () => boolean;
-  throwIfCancelled: () => void;
+  isCancelled: () => Promise<boolean>;
+  throwIfCancelled: () => Promise<void>;
 }

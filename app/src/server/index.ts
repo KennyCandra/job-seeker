@@ -17,6 +17,7 @@ import chatRouter from "./routes/chat";
 import applyRouter from "./routes/apply";
 import tasksRouter from "./routes/tasks";
 import profileRouter from "./routes/profile";
+import { queuesAdminBasePath, queuesAdminRouter } from "./routes/queuesAdmin";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -38,6 +39,7 @@ app.use(chatRouter);
 app.use(applyRouter);
 app.use(tasksRouter);
 app.use(profileRouter);
+app.use(queuesAdminBasePath, queuesAdminRouter);
 
 app.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });

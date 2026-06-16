@@ -26,9 +26,9 @@ export type CreateApplicationRunInput = {
 };
 
 export class ApplicationRunsRepository extends Repository {
-  create(input: CreateApplicationRunInput): void {
+  async create(input: CreateApplicationRunInput): Promise<void> {
     const now = this.now();
-    this.db.insert(applicationRuns)
+    await this.db.insert(applicationRuns)
       .values({
         id: input.id,
         jobId: input.jobId,
@@ -38,30 +38,28 @@ export class ApplicationRunsRepository extends Repository {
         currentUrl: input.currentUrl,
         createdAt: now,
         updatedAt: now,
-      })
-      .run();
+      });
   }
 
-  getById(id: string): ApplicationRunRow | undefined {
-    const row = this.db.select().from(applicationRuns).where(eq(applicationRuns.id, id)).get();
+  async getById(id: string): Promise<ApplicationRunRow | undefined> {
+    const [row] = await this.db.select().from(applicationRuns).where(eq(applicationRuns.id, id)).limit(1);
     return row as ApplicationRunRow | undefined;
   }
 
-  getLatestByJobId(jobId: string): ApplicationRunRow | undefined {
-    const row = this.db.select().from(applicationRuns)
+  async getLatestByJobId(jobId: string): Promise<ApplicationRunRow | undefined> {
+    const [row] = await this.db.select().from(applicationRuns)
       .where(eq(applicationRuns.jobId, jobId))
       .orderBy(desc(applicationRuns.createdAt))
-      .limit(1)
-      .get();
+      .limit(1);
     return row as ApplicationRunRow | undefined;
   }
 
-  updateStatus(id: string, status: ApplicationRunStatus, extras?: Partial<Pick<ApplicationRunRow, "error" | "currentUrl" | "summary" | "outputDir">>): void {
+  async updateStatus(id: string, status: ApplicationRunStatus, extras?: Partial<Pick<ApplicationRunRow, "error" | "currentUrl" | "summary" | "outputDir">>): Promise<void> {
     const update: Record<string, any> = { status, updatedAt: this.now() };
     if (extras?.error !== undefined) update.error = extras.error;
     if (extras?.currentUrl !== undefined) update.currentUrl = extras.currentUrl;
     if (extras?.summary !== undefined) update.summary = extras.summary;
     if (extras?.outputDir !== undefined) update.outputDir = extras.outputDir;
-    this.db.update(applicationRuns).set(update).where(eq(applicationRuns.id, id)).run();
+    await this.db.update(applicationRuns).set(update).where(eq(applicationRuns.id, id));
   }
 }

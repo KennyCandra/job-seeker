@@ -1,6 +1,6 @@
 {
-  "id": "73fee01c-8a58-4050-bfbd-f918fe9e75e5",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "5fc4a6a3-5b6f-4ff7-889e-7167ff1371fe",
+  "prevId": "73fee01c-8a58-4050-bfbd-f918fe9e75e5",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -66,6 +66,27 @@
           "columns": [
             {
               "expression": "run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_app_run_steps_run_created": {
+          "name": "idx_app_run_steps_run_created",
+          "columns": [
+            {
+              "expression": "run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -189,6 +210,27 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "idx_app_runs_job_created": {
+          "name": "idx_app_runs_job_created",
+          "columns": [
+            {
+              "expression": "job_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -269,7 +311,44 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_applications_score_created": {
+          "name": "idx_applications_score_created",
+          "columns": [
+            {
+              "expression": "score",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_applications_created_at": {
+          "name": "idx_applications_created_at",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "applications_job_id_jobs_id_fk": {
           "name": "applications_job_id_jobs_id_fk",
@@ -386,7 +465,65 @@
           "default": "now()::text"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_companies_active_slug": {
+          "name": "idx_companies_active_slug",
+          "columns": [
+            {
+              "expression": "active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_companies_active_ats": {
+          "name": "idx_companies_active_ats",
+          "columns": [
+            {
+              "expression": "active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ats",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_companies_name": {
+          "name": "idx_companies_name",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
@@ -638,6 +775,33 @@
           "method": "btree",
           "with": {}
         },
+        "idx_job_filters_job_created_id": {
+          "name": "idx_job_filters_job_created_id",
+          "columns": [
+            {
+              "expression": "job_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "idx_job_filters_score": {
           "name": "idx_job_filters_score",
           "columns": [
@@ -658,6 +822,27 @@
           "columns": [
             {
               "expression": "verdict",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_job_filters_verdict_score": {
+          "name": "idx_job_filters_verdict_score",
+          "columns": [
+            {
+              "expression": "verdict",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "score",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -859,6 +1044,27 @@
           "method": "btree",
           "with": {}
         },
+        "idx_jobs_updated_id": {
+          "name": "idx_jobs_updated_id",
+          "columns": [
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "idx_jobs_status_updated_at": {
           "name": "idx_jobs_status_updated_at",
           "columns": [
@@ -880,11 +1086,65 @@
           "method": "btree",
           "with": {}
         },
+        "idx_jobs_status_updated_id": {
+          "name": "idx_jobs_status_updated_id",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "idx_jobs_company_updated_at": {
           "name": "idx_jobs_company_updated_at",
           "columns": [
             {
               "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_jobs_company_status_updated": {
+          "name": "idx_jobs_company_status_updated",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -996,6 +1256,27 @@
           "columns": [
             {
               "expression": "run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_task_run_logs_run_created": {
+          "name": "idx_task_run_logs_run_created",
+          "columns": [
+            {
+              "expression": "run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1158,6 +1439,42 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "idx_task_runs_created_at": {
+          "name": "idx_task_runs_created_at",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_task_runs_status_created": {
+          "name": "idx_task_runs_status_created",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -1218,7 +1535,29 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_user_answers_category_created": {
+          "name": "idx_user_answers_category_created",
+          "columns": [
+            {
+              "expression": "category",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

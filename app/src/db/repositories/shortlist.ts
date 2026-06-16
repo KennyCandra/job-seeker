@@ -1,37 +1,73 @@
-import { eq, desc, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import { getSql } from "../connection";
 import { Repository } from "../repository";
-import { companies, jobFilters, jobs } from "../schema";
+import { jobFilters } from "../schema";
 import type { ShortlistItem } from "../../shared/types";
 
 export class ShortlistRepository extends Repository {
-  getAll(): ShortlistItem[] {
-    const latest = this.latestFilterIds();
-    if (latest.length === 0) return [];
-    const rows = this.queryRows()
-      .where(inArray(jobFilters.id, latest))
-      .orderBy(desc(jobFilters.score), desc(jobFilters.createdAt))
-      .all();
+  async getAll(): Promise<ShortlistItem[]> {
+    const rows = await getSql().unsafe(`
+      SELECT
+        j.id AS "jobId",
+        c.name AS "company",
+        c.slug AS "companySlug",
+        j.title AS "title",
+        j.location AS "location",
+        lf.score AS "score",
+        lf.verdict AS "verdict",
+        lf.reasons AS "reasons",
+        lf.must_have_hits AS "mustHaveHits",
+        lf.missing_items AS "missingItems",
+        j.url AS "applyUrl",
+        lf.created_at AS "filteredAt"
+      FROM (
+        SELECT DISTINCT ON (job_id) *
+        FROM job_filters
+        ORDER BY job_id, created_at DESC, id ASC
+      ) lf
+      INNER JOIN jobs j ON lf.job_id = j.id
+      INNER JOIN companies c ON j.company_id = c.id
+      ORDER BY lf.score DESC, lf.created_at DESC
+    `);
     return rows.map(toItem);
   }
 
-  getByJobId(jobId: string): ShortlistItem | undefined {
-    const latest = this.latestFilterIdForJob(jobId);
-    if (!latest) return undefined;
-    const r = this.queryRows().where(eq(jobFilters.id, latest)).get();
+  async getByJobId(jobId: string): Promise<ShortlistItem | undefined> {
+    const [r] = await getSql().unsafe(`
+      SELECT
+        j.id AS "jobId",
+        c.name AS "company",
+        c.slug AS "companySlug",
+        j.title AS "title",
+        j.location AS "location",
+        lf.score AS "score",
+        lf.verdict AS "verdict",
+        lf.reasons AS "reasons",
+        lf.must_have_hits AS "mustHaveHits",
+        lf.missing_items AS "missingItems",
+        j.url AS "applyUrl",
+        lf.created_at AS "filteredAt"
+      FROM job_filters lf
+      INNER JOIN jobs j ON lf.job_id = j.id
+      INNER JOIN companies c ON j.company_id = c.id
+      WHERE lf.job_id = $1
+      ORDER BY lf.created_at DESC, lf.id ASC
+      LIMIT 1
+    `, [jobId]);
     return r ? toItem(r) : undefined;
   }
 
-  getAccepted(): ShortlistItem[] {
-    return this.getAll().filter((item) => item.verdict === "accept");
+  async getAccepted(): Promise<ShortlistItem[]> {
+    return (await this.getAll()).filter((item) => item.verdict === "accept");
   }
 
-  save(items: ShortlistItem[]): void {
-    for (const item of items) this.upsert(item);
+  async save(items: ShortlistItem[]): Promise<void> {
+    for (const item of items) await this.upsert(item);
   }
 
-  upsert(item: ShortlistItem): void {
+  async upsert(item: ShortlistItem): Promise<void> {
     const now = item.filteredAt || this.now();
-    this.db.insert(jobFilters)
+    await this.db.insert(jobFilters)
       .values({
         id: `filter-${item.jobId}-${Date.now()}`,
         jobId: item.jobId,
@@ -42,60 +78,15 @@ export class ShortlistRepository extends Repository {
         mustHaveHits: JSON.stringify(item.mustHaveHits),
         missingItems: JSON.stringify(item.missingItems),
         createdAt: now,
-      })
-      .run();
+      });
   }
 
-  delete(jobId: string): void {
-    this.db.delete(jobFilters).where(eq(jobFilters.jobId, jobId)).run();
+  async delete(jobId: string): Promise<void> {
+    await this.db.delete(jobFilters).where(eq(jobFilters.jobId, jobId));
   }
 
-  clear(): void {
-    this.db.delete(jobFilters).run();
-  }
-
-  private latestFilterIds(): string[] {
-    const rows = this.db.select({
-      id: jobFilters.id,
-      jobId: jobFilters.jobId,
-      createdAt: jobFilters.createdAt,
-    }).from(jobFilters).orderBy(desc(jobFilters.createdAt)).all();
-
-    const seen = new Set<string>();
-    const ids: string[] = [];
-    for (const row of rows as Array<{ id: string; jobId: string }>) {
-      if (seen.has(row.jobId)) continue;
-      seen.add(row.jobId);
-      ids.push(row.id);
-    }
-    return ids;
-  }
-
-  private latestFilterIdForJob(jobId: string): string | undefined {
-    return (this.db.select({ id: jobFilters.id }).from(jobFilters)
-      .where(eq(jobFilters.jobId, jobId))
-      .orderBy(desc(jobFilters.createdAt))
-      .limit(1)
-      .get() as { id: string } | undefined)?.id;
-  }
-
-  private queryRows() {
-    return this.db.select({
-      jobId: jobs.id,
-      company: companies.name,
-      companySlug: companies.slug,
-      title: jobs.title,
-      location: jobs.location,
-      score: jobFilters.score,
-      verdict: jobFilters.verdict,
-      reasons: jobFilters.reasons,
-      mustHaveHits: jobFilters.mustHaveHits,
-      missingItems: jobFilters.missingItems,
-      applyUrl: jobs.url,
-      filteredAt: jobFilters.createdAt,
-    }).from(jobFilters)
-      .innerJoin(jobs, eq(jobFilters.jobId, jobs.id))
-      .innerJoin(companies, eq(jobs.companyId, companies.id));
+  async clear(): Promise<void> {
+    await this.db.delete(jobFilters);
   }
 }
 

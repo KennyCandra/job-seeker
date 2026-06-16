@@ -7,9 +7,9 @@ import { enqueueTask } from "../../queue/enqueue";
 
 const router = Router();
 
-router.get("/api/jobs", (req: Request, res: Response) => {
+router.get("/api/jobs", async (req: Request, res: Response) => {
   try {
-    const result = jobs.instance.search({
+    const result = await jobs.instance.search({
       page: Number(req.query.page) || 1,
       pageSize: Number(req.query.pageSize) || 50,
       search: String(req.query.search || ""),
@@ -63,18 +63,18 @@ router.post("/api/jobs/smart-filter-accepted", async (req: Request, res: Respons
   }
 });
 
-router.get("/api/jobs/:jobId", (req: Request, res: Response) => {
+router.get("/api/jobs/:jobId", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
-    const job = jobs.instance.getById(jobId);
+    const job = await jobs.instance.getById(jobId);
     if (!job) {
       res.status(404).json({ error: "Job not found" });
       return;
     }
 
-    const filters = jobFilters.instance.getByJobId(jobId);
-    const docs = jobDocuments.instance.getByJobId(jobId);
-    const app = applications.instance.getByJobId(jobId);
+    const filters = await jobFilters.instance.getByJobId(jobId);
+    const docs = await jobDocuments.instance.getByJobId(jobId);
+    const app = await applications.instance.getByJobId(jobId);
 
     res.json({
       id: job.id,
@@ -121,11 +121,11 @@ router.get("/api/jobs/:jobId", (req: Request, res: Response) => {
   }
 });
 
-router.get("/api/jobs/:jobId/documents/:documentId/download", (req: Request, res: Response) => {
+router.get("/api/jobs/:jobId/documents/:documentId/download", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
     const documentId = String(req.params.documentId);
-    const doc = jobDocuments.instance.getByJobId(jobId).find((d: any) => d.id === documentId);
+    const doc = (await jobDocuments.instance.getByJobId(jobId)).find((d: any) => d.id === documentId);
 
     if (!doc) {
       res.status(404).json({ error: "Document not found" });
@@ -165,7 +165,7 @@ router.post("/api/jobs/:jobId/filter", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
 
-    const jobRow = jobs.instance.getById(jobId);
+    const jobRow = await jobs.instance.getById(jobId);
     if (!jobRow) {
       res.status(404).json({ error: "Job not found" });
       return;
@@ -182,13 +182,13 @@ router.post("/api/jobs/:jobId/smart-filter", async (req: Request, res: Response)
   try {
     const jobId = String(req.params.jobId);
 
-    const jobRow = jobs.instance.getById(jobId);
+    const jobRow = await jobs.instance.getById(jobId);
     if (!jobRow) {
       res.status(404).json({ error: "Job not found" });
       return;
     }
 
-    const latestFilter = jobFilters.instance.getByJobId(jobId)[0];
+    const latestFilter = (await jobFilters.instance.getByJobId(jobId))[0];
     if (!latestFilter || latestFilter.verdict !== "accept") {
       res.status(400).json({ error: "Smart filter only runs after the normal filter accepts the job" });
       return;
@@ -211,7 +211,7 @@ router.post("/api/jobs/:jobId/documents", async (req: Request, res: Response) =>
       return;
     }
 
-    const jobRow = jobs.instance.getById(jobId);
+    const jobRow = await jobs.instance.getById(jobId);
     if (!jobRow) {
       res.status(404).json({ error: "Job not found" });
       return;
@@ -231,7 +231,7 @@ router.post("/api/jobs/:jobId/documents", async (req: Request, res: Response) =>
 router.post("/api/jobs/:jobId/application", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
-    const jobRow = jobs.instance.getById(jobId);
+    const jobRow = await jobs.instance.getById(jobId);
     if (!jobRow) {
       res.status(404).json({ error: "Job not found" });
       return;

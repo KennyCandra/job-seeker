@@ -20,70 +20,70 @@ type CreateTaskRunInput = {
 };
 
 export class TaskRunsRepository extends Repository {
-  create(input: CreateTaskRunInput): void {
-    this.db.insert(taskRuns).values(input).run();
+  async create(input: CreateTaskRunInput): Promise<void> {
+    await this.db.insert(taskRuns).values(input);
   }
 
-  getById(id: string): TaskRunRecord | undefined {
-    return this.db.select().from(taskRuns).where(eq(taskRuns.id, id)).get() as TaskRunRecord | undefined;
+  async getById(id: string): Promise<TaskRunRecord | undefined> {
+    const [row] = await this.db.select().from(taskRuns).where(eq(taskRuns.id, id)).limit(1);
+    return row as TaskRunRecord | undefined;
   }
 
-  getAll(limit = 50): TaskRunRecord[] {
+  async getAll(limit = 50): Promise<TaskRunRecord[]> {
     return this.db.select().from(taskRuns)
       .orderBy(desc(taskRuns.createdAt))
-      .limit(limit)
-      .all() as TaskRunRecord[];
+      .limit(limit) as Promise<TaskRunRecord[]>;
   }
 
-  getByStatus(status: TaskStatus): TaskRunRecord[] {
+  async getByStatus(status: TaskStatus): Promise<TaskRunRecord[]> {
     return this.db.select().from(taskRuns)
       .where(eq(taskRuns.status, status))
-      .orderBy(desc(taskRuns.createdAt))
-      .all() as TaskRunRecord[];
+      .orderBy(desc(taskRuns.createdAt)) as Promise<TaskRunRecord[]>;
   }
 
-  findActiveByDedupeKey(dedupeKey: string): TaskRunRecord | undefined {
-    return this.db.select().from(taskRuns)
+  async findActiveByDedupeKey(dedupeKey: string): Promise<TaskRunRecord | undefined> {
+    const [row] = await this.db.select().from(taskRuns)
       .where(and(eq(taskRuns.dedupeKey, dedupeKey), sql`${taskRuns.status} IN ('queued', 'running')`))
-      .get() as TaskRunRecord | undefined;
+      .limit(1);
+    return row as TaskRunRecord | undefined;
   }
 
-  updateStatus(id: string, status: TaskStatus): void {
+  async updateStatus(id: string, status: TaskStatus): Promise<void> {
     const now = new Date().toISOString();
     const updates: Record<string, any> = { status, updatedAt: now };
     if (status === "running") updates.startedAt = now;
     if (status === "completed") updates.completedAt = now;
     if (status === "failed") updates.completedAt = now;
     if (status === "cancelled") updates.completedAt = now;
-    this.db.update(taskRuns).set(updates).where(eq(taskRuns.id, id)).run();
+    await this.db.update(taskRuns).set(updates).where(eq(taskRuns.id, id));
   }
 
-  updateBullJobId(id: string, bullJobId: string): void {
-    this.db.update(taskRuns).set({ bullJobId, updatedAt: new Date().toISOString() }).where(eq(taskRuns.id, id)).run();
+  async updateBullJobId(id: string, bullJobId: string): Promise<void> {
+    await this.db.update(taskRuns).set({ bullJobId, updatedAt: new Date().toISOString() }).where(eq(taskRuns.id, id));
   }
 
-  updateProgress(id: string, progress: Record<string, unknown>): void {
-    this.db.update(taskRuns).set({
+  async updateProgress(id: string, progress: Record<string, unknown>): Promise<void> {
+    await this.db.update(taskRuns).set({
       progressJson: JSON.stringify(progress),
       updatedAt: new Date().toISOString(),
-    }).where(eq(taskRuns.id, id)).run();
+    }).where(eq(taskRuns.id, id));
   }
 
-  updateResult(id: string, result: Record<string, unknown>): void {
-    this.db.update(taskRuns).set({
+  async updateResult(id: string, result: Record<string, unknown>): Promise<void> {
+    await this.db.update(taskRuns).set({
       resultJson: JSON.stringify(result),
       status: "completed",
       completedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    }).where(eq(taskRuns.id, id)).run();
+    }).where(eq(taskRuns.id, id));
   }
 
-  updateError(id: string, error: string): void {
-    this.db.update(taskRuns).set({
+  async updateError(id: string, error: string): Promise<void> {
+    await this.db.update(taskRuns).set({
       error,
       status: "failed",
       completedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    }).where(eq(taskRuns.id, id)).run();
+    }).where(eq(taskRuns.id, id));
   }
 }

@@ -1,4 +1,4 @@
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { Repository } from "../repository";
 import { jobFilters } from "../schema";
 
@@ -16,9 +16,9 @@ export type SaveFilterInput = {
 };
 
 export class JobFiltersRepository extends Repository {
-  save(input: SaveFilterInput): void {
+  async save(input: SaveFilterInput): Promise<void> {
     const now = new Date().toISOString();
-    this.db.insert(jobFilters)
+    await this.db.insert(jobFilters)
       .values({
         id: input.id,
         jobId: input.jobId,
@@ -31,21 +31,18 @@ export class JobFiltersRepository extends Repository {
         model: input.model ?? "",
         promptVersion: input.promptVersion ?? "",
         createdAt: now,
-      })
-      .run();
+      });
   }
 
-  getByJobId(jobId: string): any[] {
+  async getByJobId(jobId: string): Promise<any[]> {
     return this.db.select().from(jobFilters)
       .where(eq(jobFilters.jobId, jobId))
-      .orderBy(desc(jobFilters.createdAt))
-      .all();
+      .orderBy(desc(jobFilters.createdAt));
   }
 
-  getRecent(limit = 50): any[] {
+  async getRecent(limit = 50): Promise<any[]> {
     return this.db.select().from(jobFilters)
       .orderBy(desc(jobFilters.createdAt))
-      .limit(limit)
-      .all();
+      .limit(limit);
   }
 }

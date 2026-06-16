@@ -6,9 +6,9 @@ import type { TaskType } from "../../queue/types";
 
 const router = Router();
 
-router.get("/api/tasks", (_req: Request, res: Response) => {
+router.get("/api/tasks", async (_req: Request, res: Response) => {
   try {
-    const all = taskRuns.instance.getAll(100);
+    const all = await taskRuns.instance.getAll(100);
     res.json({ ok: true, tasks: all });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -35,10 +35,10 @@ router.post("/api/tasks", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/api/tasks/:runId", (req: Request, res: Response) => {
+router.get("/api/tasks/:runId", async (req: Request, res: Response) => {
   try {
     const runId = String(req.params.runId);
-    const run = taskRuns.instance.getById(runId);
+    const run = await taskRuns.instance.getById(runId);
     if (!run) {
       res.status(404).json({ error: "Task run not found" });
       return;
@@ -49,9 +49,9 @@ router.get("/api/tasks/:runId", (req: Request, res: Response) => {
   }
 });
 
-router.get("/api/tasks/:runId/events", (req: Request, res: Response) => {
+router.get("/api/tasks/:runId/events", async (req: Request, res: Response) => {
   const runId = String(req.params.runId);
-  sseTaskEvents(res, runId);
+  await sseTaskEvents(res, runId);
 });
 
 router.post("/api/tasks/:runId/cancel", async (req: Request, res: Response) => {

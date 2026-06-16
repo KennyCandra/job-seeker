@@ -7,5 +7,22 @@ services:
       - redis-data:/data
     restart: unless-stopped
 
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: cv_autopilot
+      POSTGRES_USER: cv_autopilot
+      POSTGRES_PASSWORD: cv_autopilot
+    volumes:
+      - /home/kennycandra/.local/share/cv-autopilot-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cv_autopilot -d cv_autopilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
 volumes:
   redis-data:

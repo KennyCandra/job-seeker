@@ -33,8 +33,8 @@ export function resolveProfilePath(override?: string): string {
   return override || DEFAULT_PROFILE_PATH;
 }
 
-export function loadProfileMarkdown(path: string): string {
-  return sqliteProfileMarkdown();
+export async function loadProfileMarkdown(path: string): Promise<string> {
+  return profileMarkdownFromDb();
 }
 
 export function normalizeProfileKey(value: string): string {
@@ -61,9 +61,9 @@ export function getProfileValue(profileValues: Map<string, string>, keys: string
   return fallback;
 }
 
-export function parseProfile(path?: string): ApplicantProfile {
-  const rawMarkdown = sqliteProfileMarkdown();
-  const profile = userProfile.instance.get();
+export async function parseProfile(path?: string): Promise<ApplicantProfile> {
+  const rawMarkdown = await profileMarkdownFromDb();
+  const profile = await userProfile.instance.get();
   const values = parseProfileValues(rawMarkdown);
 
   const [personalCity, ...personalCountryParts] = (profile?.location || "").replace(/\([^)]*\)/g, "").split(",").map((part) => part.trim()).filter(Boolean);
@@ -80,10 +80,10 @@ export function parseProfile(path?: string): ApplicantProfile {
     city: getProfileValue(values, ["city", "location city"], personalCity || ""),
     country: getProfileValue(values, ["country"], personalCountryParts.join(", ") || ""),
     headline: profile?.headline || getProfileValue(values, ["headline", "title"]),
-    targetRoles: getPreferenceValue("targetRoles") || getPreferenceValue("target_roles") || getProfileValue(values, ["target roles", "target role"]),
+    targetRoles: await getPreferenceValue("targetRoles") || await getPreferenceValue("target_roles") || getProfileValue(values, ["target roles", "target role"]),
     summary: profile?.summary || getProfileValue(values, ["summary", "background"]),
-    resumePath: getPreferenceValue("resumePath") || getPreferenceValue("resume_path") || getProfileValue(values, ["resume path", "cv path", "resume", "cv"]),
-    coverLetterPath: getPreferenceValue("coverLetterPath") || getPreferenceValue("cover_letter_path") || getProfileValue(values, ["cover letter path", "cover letter"]),
+    resumePath: await getPreferenceValue("resumePath") || await getPreferenceValue("resume_path") || getProfileValue(values, ["resume path", "cv path", "resume", "cv"]),
+    coverLetterPath: await getPreferenceValue("coverLetterPath") || await getPreferenceValue("cover_letter_path") || getProfileValue(values, ["cover letter path", "cover letter"]),
     requiresSponsorship: getProfileValue(values, ["requires sponsorship", "sponsorship"]),
     authorizedCountries: getProfileValue(values, ["authorized countries"]),
     pronouns: getProfileValue(values, ["pronouns"]),
@@ -95,8 +95,8 @@ export function parseProfile(path?: string): ApplicantProfile {
   };
 }
 
-export function loadAnswersMarkdown(path?: string): string {
-  const answers = userAnswers.instance.getAll();
+export async function loadAnswersMarkdown(path?: string): Promise<string> {
+  const answers = await userAnswers.instance.getAll();
   return answers.map((item) => [
     `Category: ${item.category}`,
     `Question: ${item.question}`,
@@ -104,8 +104,8 @@ export function loadAnswersMarkdown(path?: string): string {
   ].join("\n")).join("\n\n");
 }
 
-function sqliteProfileMarkdown(): string {
-  const profile = userProfile.instance.get();
+async function profileMarkdownFromDb(): Promise<string> {
+  const profile = await userProfile.instance.get();
   if (!profile) return "";
   const lines = [
     `Name: ${profile.fullName}`,
@@ -120,8 +120,8 @@ function sqliteProfileMarkdown(): string {
   return lines.filter((line) => !line.endsWith(": ")).join("\n");
 }
 
-function getPreferenceValue(key: string): string {
-  const profile = userProfile.instance.get();
+async function getPreferenceValue(key: string): Promise<string> {
+  const profile = await userProfile.instance.get();
   if (!profile?.preferencesJson) return "";
   try {
     const prefs = JSON.parse(profile.preferencesJson);

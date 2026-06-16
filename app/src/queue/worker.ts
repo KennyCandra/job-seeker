@@ -18,46 +18,46 @@ export function startWorker(): void {
     };
 
     const log = async (level: string, message: string, meta?: Record<string, unknown>) => {
-      taskRunLogs.instance.create(runId, level, message, meta);
+      await taskRunLogs.instance.create(runId, level, message, meta);
     };
 
     const progress = async (value: Record<string, unknown>) => {
-      throwIfCancelled();
-      taskRuns.instance.updateProgress(runId, value);
+      await throwIfCancelled();
+      await taskRuns.instance.updateProgress(runId, value);
       await job.updateProgress(value);
     };
 
-    const isCancelled = () => taskRuns.instance.getById(runId)?.status === "cancelled";
-    const throwIfCancelled = () => {
-      if (isCancelled()) throw new Error("Task cancelled");
+    const isCancelled = async () => (await taskRuns.instance.getById(runId))?.status === "cancelled";
+    const throwIfCancelled = async () => {
+      if (await isCancelled()) throw new Error("Task cancelled");
     };
 
-    taskRuns.instance.updateStatus(runId, "running");
+    await taskRuns.instance.updateStatus(runId, "running");
     await log("info", `Starting ${type}`);
 
     const handler = getHandler(type);
     if (!handler) {
       const err = `No handler registered for task type: ${type}`;
       await log("error", err);
-      taskRuns.instance.updateError(runId, err);
+      await taskRuns.instance.updateError(runId, err);
       throw new Error(err);
     }
 
     try {
-      throwIfCancelled();
+      await throwIfCancelled();
       const ctx: TaskHandlerContext = { runId, payload, log, progress, isCancelled, throwIfCancelled };
       const result = await handler(ctx);
-      if (isCancelled()) {
+      if (await isCancelled()) {
         await log("warn", `Cancelled ${type}`);
         return { cancelled: true };
       }
-      taskRuns.instance.updateResult(runId, result);
+      await taskRuns.instance.updateResult(runId, result);
       await log("info", `Completed ${type}`);
       return result;
     } catch (err: any) {
       const errMsg = err.message || String(err);
       await log("error", `Failed: ${errMsg}`);
-      if (!isCancelled()) taskRuns.instance.updateError(runId, errMsg);
+      if (!(await isCancelled())) await taskRuns.instance.updateError(runId, errMsg);
       throw err;
     }
   }, {

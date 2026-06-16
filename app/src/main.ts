@@ -11,7 +11,9 @@ if (process.env.ENABLE_WORKER === "true") {
 }
 
 start();
-startBot();
+if (process.env.ENABLE_TELEGRAM_BOT === "true") {
+  startBot();
+}
 startPollers();
 
 process.on("unhandledRejection", (err) => {

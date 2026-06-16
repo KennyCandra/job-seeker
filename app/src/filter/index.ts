@@ -57,9 +57,9 @@ export async function filterJobs(client: OpenCodeClient, jobsList: JobRecord[], 
   return results;
 }
 
-export function saveFilterResults(results: FilteredJob[]): void {
+export async function saveFilterResults(results: FilteredJob[]): Promise<void> {
   for (const r of results) {
-    jobFilters.instance.save({
+    await jobFilters.instance.save({
       id: `filter-${r.job.id}-${Date.now()}`,
       jobId: r.job.id,
       contentHash: "",
@@ -142,10 +142,11 @@ export function normalFilterJob(job: JobRecord, config: SearchConfig): FilteredJ
   };
 }
 
-export function runCandidateFilterLoop(options: CandidateFilterOptions = {}, config: SearchConfig = loadSearchConfig()): CandidateFilterRun {
+export async function runCandidateFilterLoop(options: CandidateFilterOptions = {}, config?: SearchConfig): Promise<CandidateFilterRun> {
+  const cfg = config || await loadSearchConfig();
   const allJobs = options.companySlug
-    ? jobs.instance.getByCompany(options.companySlug)
-    : jobs.instance.getAll();
+    ? await jobs.instance.getByCompany(options.companySlug)
+    : await jobs.instance.getAll();
 
   console.log(
     [
@@ -154,7 +155,7 @@ export function runCandidateFilterLoop(options: CandidateFilterOptions = {}, con
       `limit=${options.limit ?? 0}`,
       `force=${Boolean(options.force)}`,
       `includeClosed=${Boolean(options.includeClosed)}`,
-      `minScore=${config.min_score}`,
+      `minScore=${cfg.min_score}`,
       `total=${allJobs.length}`,
     ].join(" "),
   );
@@ -166,7 +167,7 @@ export function runCandidateFilterLoop(options: CandidateFilterOptions = {}, con
     skippedClosed: 0,
     accepted: 0,
     rejected: 0,
-    minScore: config.min_score,
+    minScore: cfg.min_score,
   };
   const results: FilteredJob[] = [];
   const limit = Math.max(0, options.limit ?? 0);
@@ -178,14 +179,14 @@ export function runCandidateFilterLoop(options: CandidateFilterOptions = {}, con
       console.log(`[normal-filter] skip closed job=${row.id} company=${row.companyName} title="${row.title}"`);
       continue;
     }
-    if (!options.force && jobFilters.instance.getByJobId(row.id).length > 0) {
+    if (!options.force && (await jobFilters.instance.getByJobId(row.id)).length > 0) {
       summary.skippedExisting += 1;
       console.log(`[normal-filter] skip existing job=${row.id} company=${row.companyName} title="${row.title}"`);
       continue;
     }
 
-    const result = normalFilterJob(savedJobToJobRecord(row), config);
-    saveNormalFilterResult(row.id, row.contentHash, result, summary.processed);
+    const result = normalFilterJob(savedJobToJobRecord(row), cfg);
+    await saveNormalFilterResult(row.id, row.contentHash, result, summary.processed);
 
     summary.processed += 1;
     if (result.filter.verdict === "accept") summary.accepted += 1;
@@ -219,12 +220,12 @@ export function runCandidateFilterLoop(options: CandidateFilterOptions = {}, con
   return { summary, results };
 }
 
-export function saveNormalFilterResult(jobId: string, contentHash: string, result: FilteredJob, sequence = 0): void {
+export async function saveNormalFilterResult(jobId: string, contentHash: string, result: FilteredJob, sequence = 0): Promise<void> {
   console.log(
     `[normal-filter] save job=${jobId} verdict=${result.filter.verdict} score=${result.filter.score} contentHash=${contentHash || "none"}`,
   );
 
-  jobFilters.instance.save({
+  await jobFilters.instance.save({
     id: `normal-filter-${jobId}-${Date.now()}-${sequence}`,
     jobId,
     contentHash,
@@ -269,14 +270,14 @@ export async function syncAndFilter(client?: OpenCodeClient, config?: SearchConf
   filtered: FilteredJob[];
 }> {
   const c = client || createClient();
-  const cfg = config || loadSearchConfig();
+  const cfg = config || await loadSearchConfig();
 
   const sync = await syncJobs();
   const candidates = [...sync.newJobs, ...sync.changedJobs];
   console.log(`[sync] ${candidates.length} candidates to filter (${sync.newJobs.length} new, ${sync.changedJobs.length} changed)`);
 
   const filtered = await filterJobs(c, candidates, cfg);
-  saveFilterResults(filtered);
+  await saveFilterResults(filtered);
 
   return { sync, filtered };
 }
@@ -289,13 +290,13 @@ export async function searchJobsWithCriteria(criteria: {
 }): Promise<FilteredJob[]> {
   console.log("[filter] Search with criteria:", criteria);
 
-  const config = loadSearchConfig();
+  const config = await loadSearchConfig();
 
   const mergedRoles = criteria.roles?.length ? criteria.roles : config.roles;
   const mergedLocation = criteria.location || config.location.join(", ");
   const mergedAts = criteria.ats?.length ? criteria.ats : config.ats;
 
-  const allCompanies = companies.instance.getActive();
+  const allCompanies = await companies.instance.getActive();
   const targetCompanies = allCompanies.filter((c) => mergedAts.includes(c.ats));
   if (targetCompanies.length === 0) {
     console.log("[filter] No companies match the ATS criteria");

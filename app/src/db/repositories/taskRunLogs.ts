@@ -4,30 +4,29 @@ import { taskRunLogs } from "../schema";
 import type { TaskRunLogRecord } from "../../queue/types";
 
 export class TaskRunLogsRepository extends Repository {
-  create(runId: string, level: string, message: string, payload?: Record<string, unknown>): string {
+  async create(runId: string, level: string, message: string, payload?: Record<string, unknown>): Promise<string> {
     const id = `log_${shortId()}`;
-    this.db.insert(taskRunLogs).values({
+    await this.db.insert(taskRunLogs).values({
       id,
       runId,
       level,
       message,
       payloadJson: payload ? JSON.stringify(payload) : null,
       createdAt: new Date().toISOString(),
-    }).run();
+    });
     return id;
   }
 
-  getByRunId(runId: string, limit = 200): TaskRunLogRecord[] {
-    return this.db.select().from(taskRunLogs)
+  async getByRunId(runId: string, limit = 200): Promise<TaskRunLogRecord[]> {
+    const rows = await this.db.select().from(taskRunLogs)
       .where(eq(taskRunLogs.runId, runId))
       .orderBy(desc(taskRunLogs.createdAt))
-      .limit(limit)
-      .all()
-      .reverse() as TaskRunLogRecord[];
+      .limit(limit);
+    return rows.reverse() as TaskRunLogRecord[];
   }
 
-  getRecentByRunId(runId: string, sinceId: string): TaskRunLogRecord[] {
-    const all = this.getByRunId(runId);
+  async getRecentByRunId(runId: string, sinceId: string): Promise<TaskRunLogRecord[]> {
+    const all = await this.getByRunId(runId);
     const idx = all.findIndex((l) => l.id === sinceId);
     if (idx === -1) return all;
     return all.slice(idx + 1);

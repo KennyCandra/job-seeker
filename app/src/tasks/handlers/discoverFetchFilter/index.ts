@@ -3,11 +3,11 @@ import { runDiscoverFetchFilter } from "../../../pipeline";
 
 export const discoverFetchFilterHandler: HandlerFn = async (ctx) => {
   const { log, throwIfCancelled } = ctx;
-  throwIfCancelled();
+  await throwIfCancelled();
   const result = await runDiscoverFetchFilter((pl) => {
     log("info", `[pipeline] ${pl.type}: ${pl.message}`);
   });
-  throwIfCancelled();
+  await throwIfCancelled();
   return {
     discovered: result.discovery.added,
     fetched: result.fetchFilter.summary.fetched,

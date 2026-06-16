@@ -12,8 +12,8 @@ const stepsRepo = new ApplicationRunStepsRepository(db);
 const jobsRepo = new JobsRepository(db);
 
 const job = process.env.APPLY_JOB_ID
-  ? jobsRepo.getById(process.env.APPLY_JOB_ID)
-  : jobsRepo.getAll().find((item) => item.url) as ReturnType<JobsRepository["getById"]>;
+  ? await jobsRepo.getById(process.env.APPLY_JOB_ID)
+  : (await jobsRepo.getAll()).find((item) => item.url);
 
 if (!job) {
   throw new Error("No job found for dev apply run. Set APPLY_JOB_ID to an existing job id or add jobs to the database first.");
@@ -24,7 +24,7 @@ const url = process.env.APPLY_URL || job.url || APPLY_URL;
 
 const runId = `dev-${JOB_ID}-${Date.now()}`;
 
-runsRepo.create({
+await runsRepo.create({
   id: runId,
   jobId: JOB_ID,
   profilePath: "",
@@ -32,7 +32,7 @@ runsRepo.create({
   currentUrl: url,
 });
 
-stepsRepo.create({
+await stepsRepo.create({
   id: `step-${runId}-init`,
   runId,
   type: "info",

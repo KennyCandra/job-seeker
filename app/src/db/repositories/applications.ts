@@ -25,56 +25,53 @@ export type SaveAcceptedJobInput = {
   status?: AppStatus;
   documents?: string;
   notes?: string;
-  company?: string;
-  title?: string;
-  location?: string;
-  site?: string;
-  url?: string;
 };
 
 export class ApplicationsRepository extends Repository {
-  saveAcceptedJob(input: SaveAcceptedJobInput): void {
+  async saveAcceptedJob(input: SaveAcceptedJobInput): Promise<void> {
     const now = this.now();
     const id = `app-${input.jobId}-${Date.now()}`;
     const status = input.status || "ready";
     const documents = input.documents || "[]";
-    this.db.insert(applications)
+    await this.db.insert(applications)
       .values({ id, jobId: input.jobId, score: input.score, status, documents, notes: input.notes ?? "", createdAt: now, updatedAt: now })
-      .onConflictDoUpdate({ target: applications.jobId, set: { score: input.score, status, documents, notes: input.notes ?? "", updatedAt: now } })
-      .run();
+      .onConflictDoUpdate({ target: applications.jobId, set: { score: input.score, status, documents, notes: input.notes ?? "", updatedAt: now } });
   }
 
-  getRecent(limit = 20): ApplicationRow[] {
-    return this.queryRows().orderBy(desc(applications.createdAt)).limit(limit).all().map(toRow);
+  async getRecent(limit = 20): Promise<ApplicationRow[]> {
+    const rows = await this.queryRows().orderBy(desc(applications.createdAt)).limit(limit);
+    return rows.map(toRow);
   }
 
-  getAll(): ApplicationRow[] {
-    return this.queryRows().orderBy(desc(applications.score), desc(applications.createdAt)).all().map(toRow);
+  async getAll(): Promise<ApplicationRow[]> {
+    const rows = await this.queryRows().orderBy(desc(applications.score), desc(applications.createdAt));
+    return rows.map(toRow);
   }
 
-  getByJobId(jobId: string): ApplicationRow | undefined {
-    const r = this.queryRows().where(eq(applications.jobId, jobId)).get();
+  async getByJobId(jobId: string): Promise<ApplicationRow | undefined> {
+    const [r] = await this.queryRows().where(eq(applications.jobId, jobId)).limit(1);
     return r ? toRow(r) : undefined;
   }
 
-  updateStatus(jobId: string, status: AppStatus): void {
-    this.db.update(applications).set({ status, updatedAt: this.now() }).where(eq(applications.jobId, jobId)).run();
+  async updateStatus(jobId: string, status: AppStatus): Promise<void> {
+    await this.db.update(applications).set({ status, updatedAt: this.now() }).where(eq(applications.jobId, jobId));
   }
 
-  updateDocuments(jobId: string, documents: string): void {
-    this.db.update(applications).set({ documents, updatedAt: this.now() }).where(eq(applications.jobId, jobId)).run();
+  async updateDocuments(jobId: string, documents: string): Promise<void> {
+    await this.db.update(applications).set({ documents, updatedAt: this.now() }).where(eq(applications.jobId, jobId));
   }
 
-  delete(jobId: string): void {
-    this.db.delete(applications).where(eq(applications.jobId, jobId)).run();
+  async delete(jobId: string): Promise<void> {
+    await this.db.delete(applications).where(eq(applications.jobId, jobId));
   }
 
-  hasJob(jobId: string): boolean {
-    return !!this.getByJobId(jobId);
+  async hasJob(jobId: string): Promise<boolean> {
+    return Boolean(await this.getByJobId(jobId));
   }
 
-  getProcessedJobIds(): string[] {
-    return this.db.select({ jobId: applications.jobId }).from(applications).all().map((r: any) => r.jobId);
+  async getProcessedJobIds(): Promise<string[]> {
+    const rows = await this.db.select({ jobId: applications.jobId }).from(applications);
+    return rows.map((r) => r.jobId);
   }
 
   private queryRows() {

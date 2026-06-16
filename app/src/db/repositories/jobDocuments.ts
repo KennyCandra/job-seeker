@@ -13,9 +13,9 @@ export type SaveJobDocumentInput = {
 };
 
 export class JobDocumentsRepository extends Repository {
-  save(input: SaveJobDocumentInput): void {
+  async save(input: SaveJobDocumentInput): Promise<void> {
     const now = this.now();
-    this.db.insert(jobDocuments).values({
+    await this.db.insert(jobDocuments).values({
       id: `doc-${input.jobId}-${input.type}-${Date.now()}`,
       jobId: input.jobId,
       type: input.type,
@@ -26,13 +26,12 @@ export class JobDocumentsRepository extends Repository {
       createdBy: input.createdBy ?? "system",
       createdAt: now,
       updatedAt: now,
-    }).run();
+    });
   }
 
-  getByJobId(jobId: string) {
+  async getByJobId(jobId: string): Promise<any[]> {
     return this.db.select().from(jobDocuments)
       .where(eq(jobDocuments.jobId, jobId))
-      .orderBy(desc(jobDocuments.createdAt))
-      .all();
+      .orderBy(desc(jobDocuments.createdAt));
   }
 }

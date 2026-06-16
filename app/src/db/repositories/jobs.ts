@@ -2,6 +2,7 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { createHash } from "crypto";
 import { Repository } from "../repository";
 import { companies, jobs } from "../schema";
+import { getSql } from "../connection";
 import type { JobRow, SavedJob } from "../../shared/types";
 
 export type SaveJobInput = {
@@ -68,7 +69,7 @@ export type JobSearchResult = {
 };
 
 export class JobsRepository extends Repository {
-  save(input: SaveJobInput): void {
+  async save(input: SaveJobInput): Promise<void> {
     const now = this.now();
     const description = input.description ?? "";
     const rawJson = JSON.stringify(input.rawJson ?? {});
@@ -80,7 +81,7 @@ export class JobsRepository extends Repository {
       rawJson,
     });
 
-    this.db.insert(jobs)
+    await this.db.insert(jobs)
       .values({
         id: input.id,
         companyId: input.companyId,
@@ -111,12 +112,11 @@ export class JobsRepository extends Repository {
           closedAt: null,
           updatedAt: now,
         },
-      })
-      .run();
+      });
   }
 
-  getById(id: string): JobWithCompany | undefined {
-    const row = this.db.select({
+  async getById(id: string): Promise<JobWithCompany | undefined> {
+    const [row] = await this.db.select({
       id: jobs.id,
       companyId: jobs.companyId,
       externalId: jobs.externalId,
@@ -135,24 +135,24 @@ export class JobsRepository extends Repository {
       companySlug: companies.slug,
       companyName: companies.name,
       ats: companies.ats,
-    }).from(jobs).innerJoin(companies, eq(jobs.companyId, companies.id)).where(eq(jobs.id, id)).get();
+    }).from(jobs).innerJoin(companies, eq(jobs.companyId, companies.id)).where(eq(jobs.id, id)).limit(1);
     return row as JobWithCompany | undefined;
   }
 
-  get(companySlug: string, externalOrJobId: string): SavedJob | undefined {
-    const company = this.db.select().from(companies).where(eq(companies.slug, companySlug)).get();
+  async get(companySlug: string, externalOrJobId: string): Promise<SavedJob | undefined> {
+    const company = await this.db.select().from(companies).where(eq(companies.slug, companySlug)).limit(1).then((rows) => rows[0]);
     if (!company) return undefined;
-    const row = this.db.select().from(jobs)
+    const [byExternal] = await this.db.select().from(jobs)
       .where(and(eq(jobs.companyId, company.id), eq(jobs.externalId, externalOrJobId)))
-      .get()
-      || this.db.select().from(jobs)
-        .where(and(eq(jobs.companyId, company.id), eq(jobs.id, externalOrJobId)))
-        .get();
+      .limit(1);
+    const row = byExternal || (await this.db.select().from(jobs)
+      .where(and(eq(jobs.companyId, company.id), eq(jobs.id, externalOrJobId)))
+      .limit(1))[0];
     return row ? toSavedJob(row as JobRow, company as any) : undefined;
   }
 
-  getAll(): SavedJob[] {
-    const rows = this.db.select({
+  async getAll(): Promise<SavedJob[]> {
+    const rows = await this.db.select({
       id: jobs.id,
       companyId: jobs.companyId,
       externalId: jobs.externalId,
@@ -171,75 +171,68 @@ export class JobsRepository extends Repository {
       companySlug: companies.slug,
       companyName: companies.name,
       ats: companies.ats,
-    }).from(jobs).innerJoin(companies, eq(jobs.companyId, companies.id)).orderBy(desc(jobs.updatedAt)).all();
+    }).from(jobs).innerJoin(companies, eq(jobs.companyId, companies.id)).orderBy(desc(jobs.updatedAt));
     return rows.map((r: any) => toSavedJob(r, { slug: r.companySlug, name: r.companyName, ats: r.ats }));
   }
 
-  search(input: JobSearchInput = {}): JobSearchResult {
-    const raw = (this.db as any).$client || (this.db as any).session?.client;
-    if (!raw) throw new Error("Raw SQLite connection unavailable");
-
+  async search(input: JobSearchInput = {}): Promise<JobSearchResult> {
+    const pg = getSql();
     const requestedPage = Math.max(1, Math.floor(Number(input.page) || 1));
     const pageSize = Math.min(200, Math.max(10, Math.floor(Number(input.pageSize) || 50)));
     const where: string[] = [];
     const params: Array<string | number> = [];
 
+    const addParam = (value: string | number): string => {
+      params.push(value);
+      return `$${params.length}`;
+    };
+
     const search = input.search?.trim();
     if (search) {
-      where.push("(LOWER(j.title) LIKE ? OR LOWER(c.name) LIKE ? OR LOWER(j.location) LIKE ?)");
       const like = `%${search.toLowerCase()}%`;
-      params.push(like, like, like);
+      const p1 = addParam(like);
+      const p2 = addParam(like);
+      const p3 = addParam(like);
+      where.push(`(LOWER(j.title) LIKE ${p1} OR LOWER(c.name) LIKE ${p2} OR LOWER(j.location) LIKE ${p3})`);
     }
 
-    if (input.companyName) {
-      where.push("c.name = ?");
-      params.push(input.companyName);
-    }
-
-    if (input.status) {
-      where.push("j.status = ?");
-      params.push(input.status);
-    }
+    if (input.companyName) where.push(`c.name = ${addParam(input.companyName)}`);
+    if (input.status) where.push(`j.status = ${addParam(input.status)}`);
 
     const minScore = Number(input.minScore) || 0;
-    if (minScore > 0) {
-      where.push("lf.score >= ?");
-      params.push(minScore);
-    }
+    if (minScore > 0) where.push(`lf.score >= ${addParam(minScore)}`);
 
     if (input.verdict === "unfiltered") {
       where.push("lf.verdict IS NULL");
     } else if (input.verdict) {
-      where.push("lf.verdict = ?");
-      params.push(input.verdict);
+      where.push(`lf.verdict = ${addParam(input.verdict)}`);
     }
 
     const buildBaseSql = (whereSql: string) => `
       FROM jobs j
       INNER JOIN companies c ON c.id = j.company_id
       LEFT JOIN (
-        SELECT jf.*
+        SELECT DISTINCT ON (jf.job_id) jf.*
         FROM job_filters jf
-        INNER JOIN (
-          SELECT job_id, MAX(created_at) AS created_at
-          FROM job_filters
-          GROUP BY job_id
-        ) latest ON latest.job_id = jf.job_id AND latest.created_at = jf.created_at
+        ORDER BY jf.job_id, jf.created_at DESC, jf.id ASC
       ) lf ON lf.job_id = j.id
       ${whereSql}
     `;
     const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
     const baseSql = buildBaseSql(whereSql);
 
-    const total = Number(raw.query(`SELECT COUNT(*) AS count ${baseSql}`).get(...params)?.count || 0);
+    const totalRows = await pg.unsafe(`SELECT COUNT(*)::int AS count ${baseSql}`, params);
+    const total = Number(totalRows[0]?.count || 0);
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const page = Math.min(requestedPage, totalPages);
     const offset = (page - 1) * pageSize;
-    const rows = raw.query(`
+
+    const pageParams = [...params, pageSize, offset];
+    const rows = await pg.unsafe(`
       SELECT
         j.id,
-        c.slug AS companySlug,
-        c.name AS companyName,
+        c.slug AS "companySlug",
+        c.name AS "companyName",
         j.title,
         j.location,
         j.url,
@@ -247,39 +240,38 @@ export class JobsRepository extends Repository {
         c.ats,
         lf.score,
         lf.verdict,
-        EXISTS(SELECT 1 FROM job_documents d WHERE d.job_id = j.id AND d.type = 'cv') AS hasCv,
-        EXISTS(SELECT 1 FROM job_documents d WHERE d.job_id = j.id AND d.type = 'cover_letter') AS hasCoverLetter,
-        EXISTS(SELECT 1 FROM job_documents d WHERE d.job_id = j.id AND d.type = 'recommendation') AS hasRecommendation,
-        EXISTS(SELECT 1 FROM applications a WHERE a.job_id = j.id) AS hasApplication,
-        j.updated_at AS updatedAt
+        EXISTS(SELECT 1 FROM job_documents d WHERE d.job_id = j.id AND d.type = 'cv') AS "hasCv",
+        EXISTS(SELECT 1 FROM job_documents d WHERE d.job_id = j.id AND d.type = 'cover_letter') AS "hasCoverLetter",
+        EXISTS(SELECT 1 FROM job_documents d WHERE d.job_id = j.id AND d.type = 'recommendation') AS "hasRecommendation",
+        EXISTS(SELECT 1 FROM applications a WHERE a.job_id = j.id) AS "hasApplication",
+        j.updated_at AS "updatedAt"
       ${baseSql}
       ORDER BY j.updated_at DESC, j.id ASC
-      LIMIT ? OFFSET ?
-    `).all(...params, pageSize, offset) as any[];
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `, pageParams) as any[];
 
-    const summaryWhere = where.filter((clause) => clause !== "lf.verdict IS NULL" && clause !== "lf.verdict = ?");
-    const summaryParams = [...params];
-    if (input.verdict && input.verdict !== "unfiltered") summaryParams.pop();
+    const summaryWhere = where.filter((clause) => clause !== "lf.verdict IS NULL" && !clause.startsWith("lf.verdict = "));
+    const summaryParams = params.slice(0, input.verdict && input.verdict !== "unfiltered" ? -1 : undefined);
     const summaryWhereSql = summaryWhere.length ? `WHERE ${summaryWhere.join(" AND ")}` : "";
     const summaryBaseSql = buildBaseSql(summaryWhereSql);
-    const summaryRows = raw.query(`
-      SELECT COALESCE(lf.verdict, 'unfiltered') AS verdict, COUNT(*) AS count
+    const summaryRows = await pg.unsafe(`
+      SELECT COALESCE(lf.verdict, 'unfiltered') AS verdict, COUNT(*)::int AS count
       ${summaryBaseSql}
       GROUP BY COALESCE(lf.verdict, 'unfiltered')
-    `).all(...summaryParams) as Array<{ verdict: string; count: number }>;
+    `, summaryParams) as Array<{ verdict: string; count: number }>;
 
-    const companiesRows = raw.query(`
+    const companiesRows = await pg.unsafe(`
       SELECT DISTINCT c.name AS name
       FROM jobs j
       INNER JOIN companies c ON c.id = j.company_id
       ORDER BY c.name ASC
-    `).all() as Array<{ name: string }>;
+    `) as Array<{ name: string }>;
 
-    const statusRows = raw.query(`
+    const statusRows = await pg.unsafe(`
       SELECT DISTINCT status
       FROM jobs
       ORDER BY status ASC
-    `).all() as Array<{ status: string }>;
+    `) as Array<{ status: string }>;
 
     return {
       items: rows.map((row) => ({
@@ -315,52 +307,51 @@ export class JobsRepository extends Repository {
     };
   }
 
-  getByCompany(companySlug: string): SavedJob[] {
-    const company = this.db.select().from(companies).where(eq(companies.slug, companySlug)).get();
+  async getByCompany(companySlug: string): Promise<SavedJob[]> {
+    const [company] = await this.db.select().from(companies).where(eq(companies.slug, companySlug)).limit(1);
     if (!company) return [];
-    return this.db.select().from(jobs)
+    const rows = await this.db.select().from(jobs)
       .where(eq(jobs.companyId, company.id))
-      .orderBy(desc(jobs.updatedAt)).all()
-      .map((r: any) => toSavedJob(r, company as any));
+      .orderBy(desc(jobs.updatedAt));
+    return rows.map((r: any) => toSavedJob(r, company as any));
   }
 
-  delete(companySlug: string, externalOrJobId: string): void {
-    const company = this.db.select().from(companies).where(eq(companies.slug, companySlug)).get();
+  async delete(companySlug: string, externalOrJobId: string): Promise<void> {
+    const [company] = await this.db.select().from(companies).where(eq(companies.slug, companySlug)).limit(1);
     if (!company) return;
-    this.db.delete(jobs)
-      .where(and(eq(jobs.companyId, company.id), eq(jobs.externalId, externalOrJobId)))
-      .run();
+    await this.db.delete(jobs)
+      .where(and(eq(jobs.companyId, company.id), eq(jobs.externalId, externalOrJobId)));
   }
 
-  count(): number {
-    const r = this.db.select({ c: sql<number>`COUNT(*)` }).from(jobs).get();
-    return r?.c ?? 0;
+  async count(): Promise<number> {
+    const [r] = await this.db.select({ c: sql<number>`COUNT(*)` }).from(jobs);
+    return Number(r?.c ?? 0);
   }
 
-  countByCompany(companySlug: string): number {
-    const company = this.db.select().from(companies).where(eq(companies.slug, companySlug)).get();
+  async countByCompany(companySlug: string): Promise<number> {
+    const [company] = await this.db.select().from(companies).where(eq(companies.slug, companySlug)).limit(1);
     if (!company) return 0;
-    const r = this.db.select({ c: sql<number>`COUNT(*)` }).from(jobs)
-      .where(eq(jobs.companyId, company.id)).get();
-    return r?.c ?? 0;
+    const [r] = await this.db.select({ c: sql<number>`COUNT(*)` }).from(jobs)
+      .where(eq(jobs.companyId, company.id));
+    return Number(r?.c ?? 0);
   }
 
-  getByCompanyId(companyId: number): JobRow[] {
-    return this.db.select().from(jobs).where(eq(jobs.companyId, companyId)).all() as JobRow[];
+  async getByCompanyId(companyId: number): Promise<JobRow[]> {
+    return this.db.select().from(jobs).where(eq(jobs.companyId, companyId)) as Promise<JobRow[]>;
   }
 
-  updateLastSeen(jobId: string, lastSeenAt: string): void {
-    this.db.update(jobs).set({ lastSeenAt, updatedAt: lastSeenAt }).where(eq(jobs.id, jobId)).run();
+  async updateLastSeen(jobId: string, lastSeenAt: string): Promise<void> {
+    await this.db.update(jobs).set({ lastSeenAt, updatedAt: lastSeenAt }).where(eq(jobs.id, jobId));
   }
 
-  markClosedMissing(companyId: number, seenExternalIds: string[]): void {
-    const openJobs = this.db.select({ id: jobs.id, externalId: jobs.externalId }).from(jobs)
-      .where(and(eq(jobs.companyId, companyId), eq(jobs.status, "open"))).all() as { id: string; externalId: string }[];
+  async markClosedMissing(companyId: number, seenExternalIds: string[]): Promise<void> {
+    const openJobs = await this.db.select({ id: jobs.id, externalId: jobs.externalId }).from(jobs)
+      .where(and(eq(jobs.companyId, companyId), eq(jobs.status, "open"))) as { id: string; externalId: string }[];
     const toClose = openJobs.filter((j) => !seenExternalIds.includes(j.externalId)).map((j) => j.id);
     if (toClose.length > 0) {
       const now = this.now();
       for (const id of toClose) {
-        this.db.update(jobs).set({ status: "closed", closedAt: now, updatedAt: now }).where(eq(jobs.id, id)).run();
+        await this.db.update(jobs).set({ status: "closed", closedAt: now, updatedAt: now }).where(eq(jobs.id, id));
       }
     }
   }

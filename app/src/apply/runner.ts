@@ -79,8 +79,8 @@ export async function runApply(options: ApplyRunOptions): Promise<ApplyRunResult
   const keepBrowserOnBlock = process.env.APPLY_KEEP_BROWSER_ON_BLOCK === "true";
   const headless = keepBrowserOnBlock ? false : (options.headless ?? false);
 
-  const profile = parseProfile(profilePath);
-  const answersMarkdown = loadAnswersMarkdown();
+  const profile = await parseProfile(profilePath);
+  const answersMarkdown = await loadAnswersMarkdown();
   const outputDir = join(DATA_DIR, "screenshots", `apply-${jobId}-${Date.now()}`);
   mkdirSync(outputDir, { recursive: true });
 

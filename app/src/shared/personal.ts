@@ -1,7 +1,7 @@
 import { userAnswers, userProfile } from "../db";
 
-export function getPersonalData() {
-  const profile = userProfile.instance.get();
+export async function getPersonalData() {
+  const profile = await userProfile.instance.get();
   return {
     name: profile?.fullName || "",
     email: profile?.email || "",
@@ -13,8 +13,8 @@ export function getPersonalData() {
   };
 }
 
-export function getProfileForLlm(): string {
-  const profile = userProfile.instance.get();
+export async function getProfileForLlm(): Promise<string> {
+  const profile = await userProfile.instance.get();
   if (!profile) return "";
 
   const lines: string[] = [];
@@ -97,9 +97,9 @@ export function getProfileForLlm(): string {
   return lines.join("\n");
 }
 
-export function getApplicationPrefsForLlm(): string {
-  const profile = userProfile.instance.get();
-  const answers = userAnswers.instance.getAll();
+export async function getApplicationPrefsForLlm(): Promise<string> {
+  const profile = await userProfile.instance.get();
+  const answers = await userAnswers.instance.getAll();
   const lines: string[] = [
     "# Application Context",
     "",

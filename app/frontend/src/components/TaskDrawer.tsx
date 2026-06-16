@@ -23,13 +23,18 @@ export default function TaskDrawer({ onViewTask }: { onViewTask?: (runId: string
       const all: TaskRun[] = res.tasks || [];
       setActive(all.filter((t) => t.status === "queued" || t.status === "running"));
       setRecent(all.filter((t) => t.status === "completed" || t.status === "failed" || t.status === "cancelled").slice(0, 10));
-    }).catch(console.error);
+    }).catch(() => {
+      // The API can still be starting when Vite mounts the app.
+    });
   }, []);
 
   useEffect(() => {
-    load();
+    const initial = setTimeout(load, 1500);
     const interval = setInterval(load, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
   }, [load]);
 
   const handleCancel = async (runId: string) => {

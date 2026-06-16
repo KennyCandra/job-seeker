@@ -17,7 +17,7 @@ export async function enqueueTask(
   const dedupeKey = opts.dedupeKey || `${type}:${JSON.stringify(payload)}`;
 
   if (!opts.force) {
-    const existing = taskRuns.instance.findActiveByDedupeKey(dedupeKey);
+    const existing = await taskRuns.instance.findActiveByDedupeKey(dedupeKey);
     if (existing) {
       return { runId: existing.id, bullJobId: existing.bullJobId || undefined, status: existing.status };
     }
@@ -26,7 +26,7 @@ export async function enqueueTask(
   const runId = `task_${shortId()}`;
   const now = new Date().toISOString();
 
-  taskRuns.instance.create({
+  await taskRuns.instance.create({
     id: runId,
     bullJobId: null,
     type,
@@ -48,17 +48,17 @@ export async function enqueueTask(
     removeOnFail: { age: 3600 * 24 },
   });
 
-  taskRuns.instance.updateBullJobId(runId, job.id ?? "");
+  await taskRuns.instance.updateBullJobId(runId, job.id ?? "");
 
   return { runId, bullJobId: job.id ?? undefined, status: "queued" };
 }
 
 export async function cancelTask(runId: string): Promise<boolean> {
-  const run = taskRuns.instance.getById(runId);
+  const run = await taskRuns.instance.getById(runId);
   if (!run) return false;
   if (run.status !== "queued" && run.status !== "running") return false;
 
-  taskRuns.instance.updateStatus(runId, "cancelled");
+  await taskRuns.instance.updateStatus(runId, "cancelled");
 
   if (run.bullJobId) {
     try {
