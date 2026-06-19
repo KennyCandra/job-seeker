@@ -19,7 +19,11 @@ export async function enqueueTask(
   if (!opts.force) {
     const existing = await taskRuns.instance.findActiveByDedupeKey(dedupeKey);
     if (existing) {
-      return { runId: existing.id, bullJobId: existing.bullJobId || undefined, status: existing.status };
+      const existingJob = existing.bullJobId ? await queue.getJob(existing.bullJobId) : null;
+      if (existingJob) {
+        return { runId: existing.id, bullJobId: existing.bullJobId || undefined, status: existing.status };
+      }
+      await taskRuns.instance.updateError(existing.id, "BullMQ job missing from Redis; stale task failed before re-enqueue");
     }
   }
 
@@ -42,11 +46,15 @@ export async function enqueueTask(
     completedAt: null,
   });
 
-  const job = await queue.add(type, { runId, type, payload, force: !!opts.force }, {
+  const bullOpts: Record<string, unknown> = {
     jobId: opts.jobId || runId,
-    removeOnComplete: { age: 3600 * 24 },
-    removeOnFail: { age: 3600 * 24 },
-  });
+    removeOnComplete: opts.removeOnComplete ?? { age: 3600 * 24 },
+    removeOnFail: opts.removeOnFail ?? { age: 3600 * 24 },
+  };
+  if (opts.attempts !== undefined) bullOpts.attempts = opts.attempts;
+  if (opts.backoff !== undefined) bullOpts.backoff = opts.backoff;
+
+  const job = await queue.add(type, { runId, type, payload, force: !!opts.force }, bullOpts);
 
   await taskRuns.instance.updateBullJobId(runId, job.id ?? "");
 

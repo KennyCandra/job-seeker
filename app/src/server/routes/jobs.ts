@@ -76,6 +76,12 @@ router.get("/api/jobs/:jobId", async (req: Request, res: Response) => {
     const docs = await jobDocuments.instance.getByJobId(jobId);
     const app = await applications.instance.getByJobId(jobId);
 
+    const latestFilter = filters[0];
+    const latestSmartFilter = filters.find((f: any) => f.promptVersion === "smart-filter-v1" || String(f.id).startsWith("smart-filter-"));
+    const hasAcceptedNormalFilter = filters.some((f: any) =>
+      f.verdict === "accept" && (f.promptVersion === "normal-filter-v1" || String(f.id).startsWith("normal-filter-") || String(f.id).startsWith("filter-"))
+    );
+
     res.json({
       id: job.id,
       companySlug: job.companySlug,
@@ -89,15 +95,29 @@ router.get("/api/jobs/:jobId", async (req: Request, res: Response) => {
       status: job.status,
       createdAt: job.createdAt,
       updatedAt: job.updatedAt,
-      latestFilter: filters.length > 0 ? {
-        id: filters[0].id,
-        verdict: filters[0].verdict,
-        score: filters[0].score,
-        reasons: safeJsonParse(filters[0].reasons, []),
-        mustHaveHits: safeJsonParse(filters[0].mustHaveHits, []),
-        missingItems: safeJsonParse(filters[0].missingItems, []),
-        createdAt: filters[0].createdAt,
+      latestFilter: latestFilter ? {
+        id: latestFilter.id,
+        verdict: latestFilter.verdict,
+        score: latestFilter.score,
+        reasons: safeJsonParse(latestFilter.reasons, []),
+        mustHaveHits: safeJsonParse(latestFilter.mustHaveHits, []),
+        missingItems: safeJsonParse(latestFilter.missingItems, []),
+        model: latestFilter.model || "",
+        promptVersion: latestFilter.promptVersion || "",
+        createdAt: latestFilter.createdAt,
       } : null,
+      latestSmartFilter: latestSmartFilter ? {
+        id: latestSmartFilter.id,
+        verdict: latestSmartFilter.verdict,
+        score: latestSmartFilter.score,
+        reasons: safeJsonParse(latestSmartFilter.reasons, []),
+        mustHaveHits: safeJsonParse(latestSmartFilter.mustHaveHits, []),
+        missingItems: safeJsonParse(latestSmartFilter.missingItems, []),
+        model: latestSmartFilter.model || "",
+        promptVersion: latestSmartFilter.promptVersion || "",
+        createdAt: latestSmartFilter.createdAt,
+      } : null,
+      canSmartFilter: hasAcceptedNormalFilter,
       documents: docs.map((d: any) => ({
         id: d.id,
         type: d.type,
@@ -185,12 +205,6 @@ router.post("/api/jobs/:jobId/smart-filter", async (req: Request, res: Response)
     const jobRow = await jobs.instance.getById(jobId);
     if (!jobRow) {
       res.status(404).json({ error: "Job not found" });
-      return;
-    }
-
-    const latestFilter = (await jobFilters.instance.getByJobId(jobId))[0];
-    if (!latestFilter || latestFilter.verdict !== "accept") {
-      res.status(400).json({ error: "Smart filter only runs after the normal filter accepts the job" });
       return;
     }
 

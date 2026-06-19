@@ -1,4 +1,4 @@
-import type { JobRecord, FilteredJob, SearchConfig, SavedJob } from "../shared/types";
+import type { JobRecord, FilteredJob, SearchConfig } from "../shared/types";
 import { OpenCodeClient } from "../shared/llm";
 import { buildFilterPrompt } from "../shared/prompts";
 import { safeParseFilter } from "../schemas/index";
@@ -11,6 +11,50 @@ import type { JobSyncResult } from "../jobs/sync/types";
 import { loadSearchConfig } from "../shared/config";
 
 const FILTER_MD = join(SKILLS_DIR, "job_filter.md");
+export const NORMAL_FILTER_PROMPT_VERSION = "normal-filter-keyword-v1";
+
+const PREFILTER_ROLE_KEYWORDS = [
+  "backend",
+  "back end",
+  "back-end",
+  "backend engineer",
+  "back end engineer",
+  "back-end engineer",
+  "backend developer",
+  "back end developer",
+  "back-end developer",
+  "frontend",
+  "front end",
+  "front-end",
+  "frontend engineer",
+  "front end engineer",
+  "front-end engineer",
+  "frontend developer",
+  "front end developer",
+  "front-end developer",
+  "fullstack",
+  "full stack",
+  "full-stack",
+  "fullstack engineer",
+  "full stack engineer",
+  "full-stack engineer",
+  "software engineer",
+  "software developer",
+  "web developer",
+  "web engineer",
+];
+
+const PREFILTER_REJECT_TITLE_KEYWORDS = [
+  "senior",
+  "sr",
+  "staff",
+  "principal",
+  "lead",
+  "manager",
+  "director",
+  "head",
+  "architect",
+];
 
 export async function filterJob(client: OpenCodeClient, job: JobRecord, filterMd: string, targetCompanies?: string[]): Promise<FilteredJob | null> {
   const prompt = buildFilterPrompt(job, filterMd, targetCompanies);
@@ -72,21 +116,6 @@ export async function saveFilterResults(results: FilteredJob[]): Promise<void> {
   }
 }
 
-export type CandidateFilterSummary = {
-  total: number;
-  processed: number;
-  skippedExisting: number;
-  skippedClosed: number;
-  accepted: number;
-  rejected: number;
-  minScore: number;
-};
-
-export type CandidateFilterRun = {
-  summary: CandidateFilterSummary;
-  results: FilteredJob[];
-};
-
 export type CandidateFilterOptions = {
   limit?: number;
   force?: boolean;
@@ -94,41 +123,67 @@ export type CandidateFilterOptions = {
   includeClosed?: boolean;
 };
 
+export type NormalFilterCandidate = {
+  jobId: string;
+  companyName: string;
+  title: string;
+  contentHash: string;
+};
+
+export async function getNormalFilterCandidates(
+  options: CandidateFilterOptions,
+): Promise<{ candidates: NormalFilterCandidate[]; skipped: number; skippedClosed: number; skippedExisting: number }> {
+  const allJobs = options.companySlug
+    ? await jobs.instance.getByCompany(options.companySlug)
+    : await jobs.instance.getAll();
+
+  const candidates: NormalFilterCandidate[] = [];
+  let skipped = 0;
+  let skippedClosed = 0;
+  let skippedExisting = 0;
+  const limit = Math.max(0, options.limit ?? 0);
+
+  for (const row of allJobs) {
+    if (limit > 0 && candidates.length >= limit) break;
+    if (!options.includeClosed && row.status === "closed") {
+      skippedClosed++;
+      continue;
+    }
+    if (!options.force) {
+      const existing = await jobFilters.instance.getByJobId(row.id);
+      if (existing.some((filter) => filter.promptVersion === NORMAL_FILTER_PROMPT_VERSION && filter.contentHash === row.contentHash)) {
+        skippedExisting++;
+        continue;
+      }
+    }
+    candidates.push({ jobId: row.id, companyName: row.companyName, title: row.title, contentHash: row.contentHash });
+  }
+
+  skipped = skippedClosed + skippedExisting;
+  return { candidates, skipped, skippedClosed, skippedExisting };
+}
+
 export function normalFilterJob(job: JobRecord, config: SearchConfig): FilteredJob {
-  const roleHits = findTermHits(config.roles, `${job.title}\n${job.description}`);
-  const titleRoleHits = findTermHits(config.roles, job.title);
-  const locationHits = findTermHits(config.location, `${job.location}\n${job.description}`);
-  const excludeHits = findTermHits(config.exclude, `${job.title}\n${job.description}`);
-  const targetCompanyHit = config.targetCompanies.some((name) => termMatches(name, job.company));
+  const roleTerms = uniqueTerms([...PREFILTER_ROLE_KEYWORDS, ...config.roles]);
+  const rejectTitleTerms = uniqueTerms([...PREFILTER_REJECT_TITLE_KEYWORDS, ...config.exclude]);
+  const titleRoleHits = findTermHits(roleTerms, job.title);
+  const roleHits = findTermHits(roleTerms, `${job.title}\n${job.description}`);
+  const rejectHits = findTermHits(rejectTitleTerms, job.title);
 
-  const hasRemoteSignal = /remote|worldwide|global|emea|anywhere|distributed/i.test(`${job.location}\n${job.description}`);
-  const hasDescription = job.description.trim().length > 200;
-
-  let score = 0;
-  score += Math.min(titleRoleHits.length * 25, 45);
-  score += Math.min(roleHits.length * 10, 25);
-  score += Math.min(locationHits.length * 15, 25);
-  if (hasRemoteSignal) score += 10;
-  if (targetCompanyHit) score += 10;
-  if (hasDescription) score += 5;
-  if (job.url) score += 5;
-  score -= Math.min(excludeHits.length * 30, 60);
-  score = Math.max(0, Math.min(100, score));
+  const hasTitleRoleHit = titleRoleHits.length > 0;
+  const hasAnyRoleHit = roleHits.length > 0;
+  const hasRejectHit = rejectHits.length > 0;
+  const verdict = hasAnyRoleHit && !hasRejectHit ? "accept" : "reject";
+  const score = verdict === "accept" ? (hasTitleRoleHit ? 90 : 75) : 0;
 
   const missing: string[] = [];
-  if (roleHits.length === 0) missing.push("No configured role keyword matched");
-  if (locationHits.length === 0 && !hasRemoteSignal) missing.push("No configured location or remote keyword matched");
-  if (excludeHits.length > 0) missing.push(`Excluded keyword(s): ${excludeHits.join(", ")}`);
+  if (!hasAnyRoleHit) missing.push("No backend/frontend/software role keyword matched");
+  if (hasRejectHit) missing.push(`Rejected seniority/title keyword(s): ${rejectHits.join(", ")}`);
 
   const reasons: string[] = [];
-  if (roleHits.length > 0) reasons.push(`Role match: ${roleHits.slice(0, 4).join(", ")}`);
-  if (locationHits.length > 0) reasons.push(`Location match: ${locationHits.slice(0, 4).join(", ")}`);
-  if (hasRemoteSignal && locationHits.length === 0) reasons.push("Remote/global signal found");
-  if (targetCompanyHit) reasons.push("Company is in target companies");
-  if (excludeHits.length > 0) reasons.push(`Rejected by exclude keyword: ${excludeHits.join(", ")}`);
-  if (!hasDescription) reasons.push("Description is short or missing");
-
-  const verdict = score >= config.min_score && roleHits.length > 0 && excludeHits.length === 0 ? "accept" : "reject";
+  if (titleRoleHits.length > 0) reasons.push(`Title keyword match: ${titleRoleHits.slice(0, 5).join(", ")}`);
+  else if (roleHits.length > 0) reasons.push(`Description keyword match: ${roleHits.slice(0, 5).join(", ")}`);
+  if (hasRejectHit) reasons.push(`Rejected by title keyword: ${rejectHits.join(", ")}`);
 
   return {
     job,
@@ -136,88 +191,10 @@ export function normalFilterJob(job: JobRecord, config: SearchConfig): FilteredJ
       verdict,
       score,
       reasons,
-      must_have_hits: [...new Set([...roleHits, ...locationHits, ...(hasRemoteSignal ? ["remote/global"] : [])])],
+      must_have_hits: roleHits,
       missing,
     },
   };
-}
-
-export async function runCandidateFilterLoop(options: CandidateFilterOptions = {}, config?: SearchConfig): Promise<CandidateFilterRun> {
-  const cfg = config || await loadSearchConfig();
-  const allJobs = options.companySlug
-    ? await jobs.instance.getByCompany(options.companySlug)
-    : await jobs.instance.getAll();
-
-  console.log(
-    [
-      "[normal-filter] Starting candidate loop",
-      `scope=${options.companySlug || "all"}`,
-      `limit=${options.limit ?? 0}`,
-      `force=${Boolean(options.force)}`,
-      `includeClosed=${Boolean(options.includeClosed)}`,
-      `minScore=${cfg.min_score}`,
-      `total=${allJobs.length}`,
-    ].join(" "),
-  );
-
-  const summary: CandidateFilterSummary = {
-    total: allJobs.length,
-    processed: 0,
-    skippedExisting: 0,
-    skippedClosed: 0,
-    accepted: 0,
-    rejected: 0,
-    minScore: cfg.min_score,
-  };
-  const results: FilteredJob[] = [];
-  const limit = Math.max(0, options.limit ?? 0);
-
-  for (const row of allJobs) {
-    if (limit > 0 && summary.processed >= limit) break;
-    if (!options.includeClosed && row.status === "closed") {
-      summary.skippedClosed += 1;
-      console.log(`[normal-filter] skip closed job=${row.id} company=${row.companyName} title="${row.title}"`);
-      continue;
-    }
-    if (!options.force && (await jobFilters.instance.getByJobId(row.id)).length > 0) {
-      summary.skippedExisting += 1;
-      console.log(`[normal-filter] skip existing job=${row.id} company=${row.companyName} title="${row.title}"`);
-      continue;
-    }
-
-    const result = normalFilterJob(savedJobToJobRecord(row), cfg);
-    await saveNormalFilterResult(row.id, row.contentHash, result, summary.processed);
-
-    summary.processed += 1;
-    if (result.filter.verdict === "accept") summary.accepted += 1;
-    else summary.rejected += 1;
-    results.push(result);
-
-    console.log(
-      [
-        `[normal-filter] ${result.filter.verdict}`,
-        `score=${result.filter.score}`,
-        `job=${row.id}`,
-        `company=${row.companyName}`,
-        `title="${row.title}"`,
-        result.filter.must_have_hits.length ? `hits=${result.filter.must_have_hits.join("|")}` : "hits=none",
-        result.filter.missing.length ? `missing=${result.filter.missing.join("|")}` : "missing=none",
-      ].join(" "),
-    );
-  }
-
-  console.log(
-    [
-      "[normal-filter] Candidate loop done",
-      `processed=${summary.processed}`,
-      `accepted=${summary.accepted}`,
-      `rejected=${summary.rejected}`,
-      `skippedExisting=${summary.skippedExisting}`,
-      `skippedClosed=${summary.skippedClosed}`,
-    ].join(" "),
-  );
-
-  return { summary, results };
 }
 
 export async function saveNormalFilterResult(jobId: string, contentHash: string, result: FilteredJob, sequence = 0): Promise<void> {
@@ -235,24 +212,24 @@ export async function saveNormalFilterResult(jobId: string, contentHash: string,
     mustHaveHits: result.filter.must_have_hits,
     missingItems: result.filter.missing,
     model: "deterministic",
-    promptVersion: "normal-filter-v1",
+    promptVersion: NORMAL_FILTER_PROMPT_VERSION,
   });
-}
-
-function savedJobToJobRecord(job: SavedJob): JobRecord {
-  return {
-    id: job.id,
-    site: job.ats || "",
-    title: job.title,
-    company: job.companyName,
-    location: job.location,
-    url: job.url,
-    description: job.description,
-  };
 }
 
 function findTermHits(terms: string[], text: string): string[] {
   return [...new Set(terms.filter((term) => termMatches(term, text)))];
+}
+
+function uniqueTerms(terms: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const term of terms) {
+    const normalized = term.trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(term.trim());
+  }
+  return result;
 }
 
 function termMatches(term: string, text: string): boolean {

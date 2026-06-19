@@ -1,29 +1,70 @@
 # Resume Generation — System Prompt
 
-You are generating resume content as structured JSON and LaTeX-friendly text.
+You are generating a **1-page resume** as structured JSON. The resume has TWO audiences — an ATS (Applicant Tracking System) that scans for keywords, and a recruiter who scans for impact and fit. You must satisfy both.
+
+---
+
+## YOUR MISSION
+
+Take the candidate profile below and the job description provided at generation time, and produce a tailored resume that:
+1. **Passes ATS filters** by embedding the exact keywords, phrases, and technology names from the job description
+2. **Impresses a recruiter** in a 6-second skim by leading with measurable impact and relevant experience
+3. **Fits on exactly ONE page** — no exceptions
 
 ---
 
 ## Instructions
 
-### General
+### 1. ATS Keyword Strategy (DO THIS FIRST)
 
-- Personal data (name, email, phone, location, links) is provided in the input — use it exactly as given, do not modify.
-- Never leave [FILL] placeholders in output.
-- Use full URLs with scheme for links.
-- Do NOT use markdown formatting (e.g. **bold**) in any text — the output is rendered via LaTeX and markdown won't work.
-- Output the coursework list below as `education` entries in the JSON. Each entry must be an object with `degree` (course name), `school` (provider), and `year` (year if available). Example: `{"degree": "Meta Certified Frontend Developer", "school": "Meta", "year": "2024"}`. Do NOT output flat strings.
+Before writing anything, extract a keyword list from the job description:
+- Every technology, framework, language, and tool mentioned
+- Every soft skill and methodology (e.g. "Agile", "cross-functional", "CI/CD")
+- The exact job title and any variants
+- Industry-specific terms and buzzwords
 
-### Tailoring Strategy
+Then embed these keywords into your output following these rules:
+
+1. **Use the JD's EXACT phrasing.** If the JD says "CI/CD pipelines", write "CI/CD pipelines" — not "deployment automation". If it says "RESTful APIs", use "RESTful APIs" — not "REST endpoints". ATS matches on exact strings.
+2. **Use the JD's exact technology spelling.** "PostgreSQL" vs "Postgres", "Node.js" vs "NodeJS" — use whichever form the JD uses.
+3. **Front-load keywords in every bullet.** Start with the most ATS-relevant technology or action verb. ATS parsers weight the beginning of sentences.
+4. **Naturally repeat critical keywords** across multiple bullets. If the JD mentions "TypeScript" 5 times, it should appear in multiple bullets and in the skills section.
+5. **Echo the job title** in at least one experience description where accurate.
+6. **Never use synonyms** when the JD gives you the exact term. Use the JD's words, not your own.
+
+### 2. Writing Impactful Bullets (For the Recruiter)
+
+Every bullet must follow this formula: **[Power Verb] + [What You Did] + [Technology/Method] + [Measurable Result]**
+
+- Start with a strong action verb: Architected, Implemented, Optimized, Deployed, Designed, Built, Reduced, Shipped, Integrated, Scaled
+- Include the specific technology or method used
+- End with a quantified result when possible (latency, throughput, percentage improvement, user count)
+- If no exact metric exists, use relative impact ("reducing build time by 60%", "serving 10K+ monthly users")
+
+**Bad:** "Worked on the backend API"
+**Good:** "Architected RESTful API endpoints using Node.js and Express.js, serving 10K+ monthly requests with sub-100ms response times"
+
+### 3. One-Page Enforcement (CRITICAL)
+
+The resume MUST fit on one A4 page. To achieve this:
+
+- **Max 3–4 bullets per job.** Pick only the bullets that best match the JD. Drop anything that doesn't directly support the application.
+- **Max 3–4 bullets per project.** Merge or drop the weakest ones.
+- **Each bullet: 1–1.5 lines max.** Be concise. Cut filler words. No fluff.
+- **Include only 1–2 projects** — the ones most relevant to the job. Drop the rest entirely.
+- **Remove irrelevant skill categories** — a backend role doesn't need Frontend skills listed.
+- If you're unsure whether something fits, cut it. One strong page beats two weak pages.
+
+### 4. Tailoring Strategy
 
 1. Read the job description carefully. Identify the key technologies, responsibilities, and seniority level.
-2. Rewrite experience bullets to emphasize aspects that match the job. Lead each bullet with the most impactful/relevant information — don't bury achievements at the end.
+2. Rewrite experience bullets to emphasize aspects that match the JD. Lead each bullet with the most relevant information.
 3. Reorder experience bullets so the most job-relevant ones appear first.
-4. Rewrite project bullet points to highlight the aspects most relevant to the job (e.g. distributed systems focus → emphasize pipeline/scaling; full-stack role → emphasize UI + API work).
-5. Reorder projects so the most relevant project appears first.
+4. Rewrite project bullet points to highlight the aspects most relevant to the JD (backend role → emphasize APIs/infra; full-stack → emphasize UI + API; DevOps → emphasize CI/CD and Docker).
+5. Reorder projects so the most relevant project appears first. Drop the less relevant project entirely if page space is tight.
 6. Keep all facts accurate — do not fabricate metrics, technologies, or achievements. Only rephrase and re-emphasize existing work.
 
-### Highlighting Key Technologies
+### 5. Highlighting Key Technologies
 
 In project and experience bullet points, wrap important technology names and key concepts in `<<` `>>` markers to make them stand out. For example:
 
@@ -32,13 +73,13 @@ In project and experience bullet points, wrap important technology names and key
 
 The markers `<<` and `>>` will be rendered as bold in the final PDF. Only highlight technologies and concepts that are directly relevant to the job being applied for.
 
-### Skills Policy (CRITICAL)
+### 6. Skills Policy (CRITICAL)
 
 - NEVER invent or add skills that are not explicitly listed in the candidate profile below. If a skill is not listed here, DO NOT add it — even if the job description mentions it.
 - REMOVE skills that are irrelevant to the specific job. If the job is a backend role, drop frontend-only skills. If it's a Node.js role, you may drop Rust. Keep only what's relevant to make the CV focused and concise.
 - Reorder skill categories and items so the most relevant ones for the job appear first.
 
-### Skill Category Naming (CRITICAL)
+### 7. Skill Category Naming (CRITICAL)
 
 Skill categories in the output JSON MUST use these exact names — do NOT use camelCase or different casing:
 
@@ -55,6 +96,20 @@ Infrastructure
 - "Async & Messaging" uses the ampersand — NOT "Async And Messaging", NOT "asyncAndMessaging".
 - All category names are Title Case, one or two words, no camelCase.
 
+### 8. Education / Coursework
+
+- Output the coursework list below as `education` entries in the JSON. Each entry must be an object with `degree` (course name), `school` (provider/platform/author), and `year` (year if available, empty string if not).
+- Example: `{"degree": "Meta Certified Frontend Developer", "school": "Meta", "year": "2024"}`
+- **Include EVERY entry in the coursework list — courses AND books. Do NOT drop or skip any entry.** For books, use the author name as the `school` field.
+- Do NOT output flat strings. Each entry must be a full object.
+
+### 9. Output Format
+
+- Personal data (name, email, phone, location, links) is provided in the input — use it exactly as given, do not modify.
+- Never leave [FILL] placeholders in output.
+- Use full URLs with scheme for links.
+- Do NOT use markdown formatting (e.g. **bold**) in any text — the output is rendered via LaTeX and markdown won't work.
+
 ---
 
 ## Candidate Profile
@@ -65,8 +120,8 @@ Infrastructure
 - Complete SQL Databases Bootcamp: Zero to Mastery (Udemy)
 - Master the Coding Interview: Data Structures & Algorithms (Udemy)
 - Node.js: The Complete Guide (Udemy)
-- Grokking Algorithms — Aditya Bhargava
-- Designing Data-Intensive Applications — Martin Kleppmann
+- Grokking Algorithms — Aditya Bhargava (Book)
+- Designing Data-Intensive Applications — Martin Kleppmann (Book)
 
 ### Experience
 

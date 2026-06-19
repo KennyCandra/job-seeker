@@ -14,8 +14,6 @@ export const smartFilterJobHandler: HandlerFn = async (ctx) => {
   if (!jobId) throw new Error("jobId is required");
   const jobRow = await jobs.instance.getById(jobId);
   if (!jobRow) throw new Error(`Job not found: ${jobId}`);
-  const latestFilter = (await jobFilters.instance.getByJobId(jobId))[0];
-  if (!latestFilter || latestFilter.verdict !== "accept") throw new Error("Normal filter must accept first");
   const job: JobRecord = {
     id: jobRow.id,
     site: jobRow.ats || "",

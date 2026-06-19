@@ -62,7 +62,7 @@ export function startWorker(): void {
     }
   }, {
     connection: getQueueConnection(),
-    concurrency: 1,
+    concurrency: Number(process.env.WORKER_CONCURRENCY || 5),
     lockDuration: 300000,
   });
 

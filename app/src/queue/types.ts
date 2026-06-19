@@ -18,6 +18,13 @@ export interface EnqueueOptions {
   force?: boolean;
   dedupeKey?: string;
   jobId?: string;
+  attempts?: number;
+  backoff?: {
+    type: "exponential" | "fixed";
+    delay: number;
+  };
+  removeOnComplete?: { age: number } | boolean;
+  removeOnFail?: { age: number } | boolean;
 }
 
 export interface TaskPayload {

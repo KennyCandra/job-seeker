@@ -27,7 +27,7 @@ const fallbackTemplate = `
 \\pagestyle{empty}
 \\begin{document}
 \\begin{center}
-{\\LARGE\\bfseries\\color{primary} {{{name}}}}\\\\[2pt]
+{\\LARGE\\bfseries\\color{primary} {{{name}}}}\\par\\vspace{2pt}
 {\\small\\color{subtle} {{{contact}}}}
 \\end{center}
 \\section{Technical Skills}
@@ -86,7 +86,7 @@ function buildExperienceHeader(job: any) {
 
 function buildExperienceBullets(bullets?: string[]) {
   if (!bullets || bullets.length === 0) return "";
-  const items = bullets.map((b) => `\\item ${boldTech(sanitizeLatex(b))}`).join("\n");
+  const items = bullets.map((b) => `\\item {\\small\\bfseries ${boldTech(sanitizeLatex(b))}}`).join("\n");
   return `\\begin{itemize}\n${items}\n\\end{itemize}`;
 }
 

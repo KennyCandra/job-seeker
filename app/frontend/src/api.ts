@@ -190,7 +190,17 @@ export interface FilterDetail {
   reasons: string[];
   mustHaveHits: string[];
   missingItems: string[];
+  model: string;
+  promptVersion: string;
   createdAt: string;
+}
+
+export interface TaskCreateResponse {
+  ok: boolean;
+  runId: string;
+  bullJobId?: string;
+  status: string;
+  jobId?: string;
 }
 
 export interface DocItem {
@@ -226,6 +236,8 @@ export interface JobDetail {
   createdAt: string;
   updatedAt: string;
   latestFilter: FilterDetail | null;
+  latestSmartFilter: FilterDetail | null;
+  canSmartFilter: boolean;
   documents: DocItem[];
   application: AppSummary | null;
 }
@@ -388,7 +400,7 @@ export const api = {
     filter: (jobId: string) =>
       fetcher<FilterResult>(`/api/jobs/${encodeURIComponent(jobId)}/filter`, { method: "POST" }),
     smartFilter: (jobId: string) =>
-      postJson<FilterResult & { error?: string }>(`/api/jobs/${encodeURIComponent(jobId)}/smart-filter`),
+      postJson<TaskCreateResponse>(`/api/jobs/${encodeURIComponent(jobId)}/smart-filter`),
     smartFilterAccepted: (force = false) =>
       postJson<{ ok: boolean; summary: SmartFilterAcceptedSummary; results: Array<{ jobId: string; company: string; title: string; verdict: string; score: number; error?: string }> }>(
         "/api/jobs/smart-filter-accepted",
@@ -422,7 +434,7 @@ export const api = {
   tasks: {
     list: () => fetcher<{ ok: boolean; tasks: any[] }>("/api/tasks"),
     create: (type: string, payload: Record<string, unknown>, force = false) =>
-      postJson<{ ok: boolean; runId: string; bullJobId?: string; status: string }>(
+      postJson<TaskCreateResponse>(
         "/api/tasks",
         { type, payload, force },
       ),

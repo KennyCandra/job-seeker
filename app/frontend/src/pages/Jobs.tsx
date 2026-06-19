@@ -3,7 +3,7 @@ import { api, type JobListItem, type JobDetail } from "../api";
 import { useTaskRun } from "../hooks/useTaskRun";
 import TaskLogPanel from "../components/TaskLogPanel";
 import TaskStatusBadge from "../components/TaskStatusBadge";
-import { Search, Filter, RefreshCw, Briefcase, FileText, FileSignature, UserCheck, ExternalLink, X, ChevronRight, Loader2, Download, Play, Image } from "lucide-react";
+import { Search, Filter, RefreshCw, Briefcase, FileText, FileSignature, UserCheck, ExternalLink, X, ChevronRight, Loader2, Download, Play, Image, Sparkles } from "lucide-react";
 
 const APPLY_POLL_INTERVAL_MS = 2500;
 const APPLY_POLL_LIMIT = 48;
@@ -123,7 +123,19 @@ export default function Jobs() {
   };
 
   const handleSmartFilter = async (jobId: string) => {
-    await startJobTask(`smart-filter-${jobId}`, "smart-filter-job", { jobId }, "Smart filter", jobId);
+    const key = `smart-filter-${jobId}`;
+    setActionLoading(key);
+    setActionMsg(null);
+    setActiveTaskAction({ key, jobId, label: "Smart filter" });
+    try {
+      const result = await api.jobs.smartFilter(jobId);
+      setActionMsg("Smart filter queued");
+      taskRun.subscribe(result.runId);
+    } catch (err: any) {
+      setActionMsg(`Error: ${err.message}`);
+      setActionLoading(null);
+      setActiveTaskAction(null);
+    }
   };
 
   const handleSmartFilterAccepted = async () => {
@@ -551,17 +563,15 @@ function JobDetailPanel({
             {isLoading(`filter-${detail.id}`) ? <Loader2 size={14} className="spin" /> : <Filter size={14} />}
             Filter
           </button>
-          {detail.latestFilter?.verdict === "accept" && (
-            <button
-              className="btn btn-sm btn-primary"
-              onClick={() => onSmartFilter(detail.id)}
-              disabled={isLoading(`smart-filter-${detail.id}`)}
-              title="Run the AI smart filter for this accepted candidate"
-            >
-              {isLoading(`smart-filter-${detail.id}`) ? <Loader2 size={14} className="spin" /> : <Filter size={14} />}
-              Smart Filter
-            </button>
-          )}
+          <button
+            className="btn btn-sm btn-primary"
+            onClick={() => onSmartFilter(detail.id)}
+            disabled={isLoading(`smart-filter-${detail.id}`)}
+            title={detail.canSmartFilter ? "Run the AI smart filter for this accepted candidate" : "Run the AI smart filter for this job"}
+          >
+            {isLoading(`smart-filter-${detail.id}`) ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
+            {detail.latestSmartFilter ? "Re-run Smart Filter" : "Smart Filter"}
+          </button>
           <button
             className="btn btn-sm btn-ghost"
             onClick={() => onRefetch(detail.id)}
@@ -583,6 +593,9 @@ function JobDetailPanel({
             <span className={`score-badge ${detail.latestFilter.score >= 80 ? "score-high" : detail.latestFilter.score >= 65 ? "score-mid" : "score-low"}`}>
               {detail.latestFilter.verdict} · {detail.latestFilter.score}
             </span>
+            {detail.latestFilter.promptVersion === "smart-filter-v1" && (
+              <span className="score-badge score-ai">AI</span>
+            )}
           </div>
           {detail.latestFilter.reasons.length > 0 && (
             <ul className="reason-list">
@@ -601,6 +614,37 @@ function JobDetailPanel({
             <div className="filter-detail">
               <span className="label">Missing:</span>
               <span className="text-muted">{detail.latestFilter.missingItems.join(", ")}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {detail.latestSmartFilter && detail.latestFilter?.id !== detail.latestSmartFilter.id && (
+        <div className="detail-section">
+          <h3>Smart Filter Result</h3>
+          <div className="filter-summary">
+            <span className={`score-badge ${detail.latestSmartFilter.score >= 80 ? "score-high" : detail.latestSmartFilter.score >= 65 ? "score-mid" : "score-low"}`}>
+              {detail.latestSmartFilter.verdict} · {detail.latestSmartFilter.score}
+            </span>
+            <span className="score-badge score-ai">AI</span>
+          </div>
+          {detail.latestSmartFilter.reasons.length > 0 && (
+            <ul className="reason-list">
+              {detail.latestSmartFilter.reasons.map((r, i) => (
+                <li key={i}>{r}</li>
+              ))}
+            </ul>
+          )}
+          {detail.latestSmartFilter.mustHaveHits.length > 0 && (
+            <div className="filter-detail">
+              <span className="label">Hits:</span>
+              <span className="text-muted">{detail.latestSmartFilter.mustHaveHits.join(", ")}</span>
+            </div>
+          )}
+          {detail.latestSmartFilter.missingItems.length > 0 && (
+            <div className="filter-detail">
+              <span className="label">Missing:</span>
+              <span className="text-muted">{detail.latestSmartFilter.missingItems.join(", ")}</span>
             </div>
           )}
         </div>
