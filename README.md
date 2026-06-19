@@ -1,7 +1,7 @@
 # CV Autopilot
 
 <p align="center">
-  <img src="videos/linkedin-app/out/cv-autopilot-linkedin.mp4" alt="CV Autopilot Demo" width="480"/>
+  <video src="https://github.com/user-attachments/assets/a1f2e2c9-7e65-4de2-81bd-d3e79e6e0b55" width="640" controls></video>
 </p>
 
 <p align="center">
@@ -19,17 +19,6 @@
   <img src="https://img.shields.io/badge/UI-React-61DAFB?logo=react&logoColor=black" alt="React"/>
   <img src="https://img.shields.io/badge/docs-Remotion-00D4AA?logo=video" alt="Remotion"/>
 </p>
-
----
-
-## Demo Video
-
-https://github.com/user-attachments/assets/a1f2e2c9-7e65-4de2-81bd-d3e79e6e0b55
-
-> Rendered with **Remotion** — 1080×1350, 30fps, H.264.  
-> Source: [`videos/linkedin-app/`](./videos/linkedin-app/) — `npm run render` to rebuild.
-
----
 
 ## What It Does
 
