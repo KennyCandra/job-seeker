@@ -83,7 +83,7 @@ export async function makeCvForJob(job: JobRecord, score: number, client?: OpenC
   const app = await generateApplicationForJob(c, job, resume);
   writeJson(join(dir, "application.json"), app);
 
-  const md = renderApplicationMarkdown(job, resume, app);
+  const md = renderApplicationMarkdown(job, app);
   writeText(join(dir, "application.md"), md);
   await jobDocuments.instance.save({ jobId: job.id, type: "cover_letter", content: app.cover_letter, filePath: join(dir, "application.md"), metadata: { email_subject: app.email_subject } });
 
@@ -116,7 +116,7 @@ export async function generateCoverLetterDocument(job: JobRecord, client?: OpenC
   const app = await generateApplicationForJob(c, job, resume);
 
   writeJson(join(dir, "application.json"), app);
-  const md = renderApplicationMarkdown(job, resume, app);
+  const md = renderApplicationMarkdown(job, app);
   writeText(join(dir, "application.md"), md);
 
   await jobDocuments.instance.save({
@@ -136,12 +136,11 @@ export async function generateRecommendationDocument(job: JobRecord, client?: Op
   mkdirSync(dir, { recursive: true });
   await ensurePersistedJob(job);
 
-  const resume = await generateResumeForJob(c, job);
   const docsContext = [
     "Create useful application support documents from the saved candidate profile and answers.",
     await getApplicationPrefsForLlm(),
   ].join("\n\n");
-  const prompt = buildDocumentPrompt("recommendation", job, resume, docsContext);
+  const prompt = buildDocumentPrompt("recommendation", job, docsContext);
   const result = await c.completeJson(prompt.system, prompt.user);
   const parsed = parseJsonFromText<Record<string, string>>(result);
   const content = parsed.content || result;

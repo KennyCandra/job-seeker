@@ -4,9 +4,9 @@ import { readText } from "./utils";
 import { parseJsonFromText } from "./llm";
 import { buildDocumentPrompt, buildExtractPrompt } from "./prompts";
 import { SKILLS_DIR } from "./paths";
-import type { JobRecord, ResumePayload, ApplicationPayload } from "./types";
+import type { JobRecord, ApplicationPayload } from "./types";
 
-export function renderApplicationMarkdown(job: JobRecord, resume: ResumePayload, application: ApplicationPayload): string {
+export function renderApplicationMarkdown(job: JobRecord, application: ApplicationPayload): string {
   return [
     "# Application Package",
     "",
@@ -29,12 +29,11 @@ export function renderApplicationMarkdown(job: JobRecord, resume: ResumePayload,
 export async function generateDocument(
   docType: "recommendation" | "custom",
   job: JobRecord,
-  resume: ResumePayload,
   customInstruction?: string,
 ): Promise<string> {
   const docsMd = readText(join(SKILLS_DIR, "documents.md"));
   const client = createClient();
-  const prompt = buildDocumentPrompt(docType, job, resume, docsMd, customInstruction);
+  const prompt = buildDocumentPrompt(docType, job, docsMd, customInstruction);
   const result = await client.completeJson(prompt.system, prompt.user);
   const parsed = parseJsonFromText<Record<string, string>>(result);
   return parsed.content || result;

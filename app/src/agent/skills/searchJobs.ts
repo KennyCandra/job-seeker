@@ -30,9 +30,6 @@ export const searchJobs: AgentSkill = {
       if (data.error) return { type: "error", message: `API error: ${JSON.stringify(data.error)}` };
 
       const results = data.organic_results?.map((r: any) => r.link) || [];
-      writeFile(join(DATA_DIR, "search_results.json"), JSON.stringify(results, null, 2), "utf-8", (err) => {
-        if (err) console.error("Error writing search results:", err);
-      });
 
       await handlePostFetchingJobs(results);
 

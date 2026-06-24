@@ -43,7 +43,7 @@ function loadTemplate(): string {
   if (existsSync(TEMPLATE_PATH)) {
     return readFileSync(TEMPLATE_PATH, "utf-8");
   }
-  console.warn("[latex] templates/resume.tex not found, using inline fallback");
+  
   return fallbackTemplate;
 }
 

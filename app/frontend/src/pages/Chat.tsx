@@ -1,128 +1,106 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
+import { BriefcaseBusiness, CheckCircle2, Loader2, X } from "lucide-react";
 
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
+interface ManualJob {
+  id: string;
+  companySlug: string;
+  companyName: string;
+  title: string;
+  location: string;
+  url: string;
+  description: string;
+  status: string;
 }
 
-export default function Chat() {
+export default function Chat({ onViewJobs }: { onViewJobs?: () => void }) {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [streaming, setStreaming] = useState(false);
-  const messagesRef = useRef<HTMLDivElement>(null);
+  const [text, setText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [savedJob, setSavedJob] = useState<ManualJob | null>(null);
 
-  useEffect(() => {
-    if (messagesRef.current) {
-      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-    }
-  }, [messages]);
+  const handleSave = async () => {
+    const pasted = text.trim();
+    if (pasted.length < 20 || saving) return;
 
-  const handleSend = async () => {
-    const text = input.trim();
-    if (!text || streaming) return;
-
-    setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: text }]);
-    setStreaming(true);
-
-    const userMsg: ChatMessage = { role: "assistant", content: "" };
-    setMessages((prev) => [...prev, userMsg]);
+    setSaving(true);
+    setError(null);
+    setSavedJob(null);
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/jobs/manual", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ text: pasted }),
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save job");
 
-      const reader = res.body?.getReader();
-      if (!reader) return;
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.text) {
-                setMessages((prev) => {
-                  const next = [...prev];
-                  const last = next[next.length - 1];
-                  if (last?.role === "assistant") {
-                    next[next.length - 1] = {
-                      ...last,
-                      content: last.content + data.text,
-                    };
-                  }
-                  return next;
-                });
-              }
-            } catch {}
-          }
-        }
-      }
+      setSavedJob(data.job);
+      setText("");
     } catch (err: any) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: `Error: ${err.message}` },
-      ]);
+      setError(err.message || "Failed to save job");
     } finally {
-      setStreaming(false);
+      setSaving(false);
     }
   };
 
   return (
     <>
-      <button className="chat-toggle" onClick={() => setOpen(!open)}>
-        {open ? "✕" : "💬"}
+      <button className="chat-toggle" onClick={() => setOpen(!open)} title="Paste job">
+        {open ? <X size={20} /> : <BriefcaseBusiness size={20} />}
       </button>
 
       {open && (
         <div className="chat-panel">
-          <div className="chat-header">Chat</div>
-          <div className="chat-messages" ref={messagesRef}>
-            {messages.length === 0 && (
-              <div className="chat-msg assistant text-muted">
-                Ask me anything about your job search, or paste a job description
-                to extract it.
+          <div className="chat-header">
+            <span>Paste Job</span>
+            <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>
+              <X size={13} />
+            </button>
+          </div>
+
+          <div className="paste-job-body">
+            <p className="text-sm text-muted">
+              Paste a job post or description. It will be extracted and saved under the Custom company.
+            </p>
+
+            <textarea
+              className="paste-job-input"
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              placeholder="Paste job title, company text, URL, location, and description..."
+              disabled={saving}
+            />
+
+            {error && <div className="paste-job-alert error">{error}</div>}
+
+            {savedJob && (
+              <div className="paste-job-alert success">
+                <CheckCircle2 size={16} />
+                <div>
+                  <strong>{savedJob.title || "Saved job"}</strong>
+                  <span>{savedJob.companyName} · {savedJob.location || "No location"}</span>
+                  <code>{savedJob.id}</code>
+                </div>
               </div>
-            )}
-            {messages.map((m, i) => (
-              <div key={i} className={`chat-msg ${m.role}`}>
-                {m.content}
-              </div>
-            ))}
-            {streaming && (
-              <div className="chat-msg assistant text-muted">▊</div>
             )}
           </div>
+
           <div className="chat-input-area">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder="Type a message..."
-            />
             <button
               className="btn btn-primary btn-sm"
-              onClick={handleSend}
-              disabled={streaming}
+              onClick={handleSave}
+              disabled={saving || text.trim().length < 20}
             >
-              Send
+              {saving ? <Loader2 size={14} className="spin" /> : <BriefcaseBusiness size={14} />}
+              {saving ? "Saving..." : "Save Job"}
             </button>
+            {savedJob && (
+              <button className="btn btn-ghost btn-sm" onClick={onViewJobs}>
+                View in Jobs
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -49,7 +49,6 @@ export function buildApplicationPrompt(job: JobRecord, resume: ResumePayload, ap
 export function buildDocumentPrompt(
   docType: string,
   job: JobRecord,
-  resume: ResumePayload,
   docsMd: string,
   customInstruction?: string,
 ) {

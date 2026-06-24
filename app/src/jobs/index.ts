@@ -74,6 +74,21 @@ export async function syncCompany(companySlug: string, company?: CompanyRecord):
   if (!c) throw new HttpError(404, `Company not found: ${companySlug}`);
 
   const ats = c.ats as AtsPlatform;
+  if (ats === "custom") {
+    const companyResult: CompanyFetchResult = {
+      companyId: c.id,
+      companySlug: c.slug,
+      companyName: c.name,
+      ats,
+      fetched: 0,
+      newCount: 0,
+      changedCount: 0,
+      unchangedCount: 0,
+      closedCount: 0,
+    };
+    return { companyResult, newJobs: [], changedJobs: [], unchangedJobs: [], closedJobs: [] };
+  }
+
   const endpoint = c.endpoint || endpointForAts(c.slug, ats);
   const { jobs: rawJobs, endpoint: resolvedEndpoint } = await fetchCompanyJobs(ats, endpoint);
   if (resolvedEndpoint !== endpoint) {
@@ -123,6 +138,7 @@ async function fetchCompanyJobs(ats: AtsPlatform, endpoint: string): Promise<{ j
     case "greenhouse": return fetchGreenhouseJobsWithFallback(endpoint);
     case "lever": return { jobs: await fetchLeverJobs(endpoint), endpoint };
     case "ashby": return { jobs: await fetchAshbyJobs(endpoint), endpoint };
+    case "custom": return { jobs: [], endpoint };
     default: throw new Error(`Unknown ATS: ${ats}`);
   }
 }
@@ -173,6 +189,7 @@ async function fetchSingleJob(ats: AtsPlatform, endpoint: string, jobId: string)
     case "greenhouse": return fetchSingleGreenhouseJob(endpoint, jobId);
     case "lever": return fetchSingleLeverJob(endpoint, jobId);
     case "ashby": return fetchSingleAshbyJob(endpoint, jobId);
+    case "custom": throw new Error("Manual jobs cannot be fetched from an ATS");
   }
 }
 
@@ -317,6 +334,8 @@ export async function refetchJobById(jobId: string): Promise<{ job: JobRecord; s
   if (!company) throw new Error(`Company not found for job: ${jobId}`);
 
   const ats = saved.ats as AtsPlatform;
+  if (ats === "custom") throw new Error("Manual jobs cannot be refetched from an ATS");
+
   const endpoint = company.endpoint || endpointForAts(company.slug, ats);
 
   // Try company endpoint list first

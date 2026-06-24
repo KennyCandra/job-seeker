@@ -59,7 +59,7 @@ export type FilteredJob = {
 
 export type AppStatus = "approved" | "ready" | "applied" | "interviewing" | "offer" | "rejected" | "ghosted" | "withdrawn";
 
-export type AtsPlatform = "greenhouse" | "lever" | "ashby";
+export type AtsPlatform = "greenhouse" | "lever" | "ashby" | "custom";
 
 export type CompanyRecord = {
   id: number;

@@ -16,6 +16,7 @@ export function boardUrlForAts(slug: string, ats: AtsPlatform): string {
     case "greenhouse": return `https://boards.greenhouse.io/${slug}`;
     case "lever": return `https://jobs.lever.co/${slug}`;
     case "ashby": return `https://jobs.ashbyhq.com/${slug}`;
+    case "custom": return "manual";
   }
 }
 
@@ -26,6 +27,7 @@ export function endpointForAts(slug: string, ats: AtsPlatform): string {
     case "greenhouse": return `https://boards-api.greenhouse.io/v1/boards/${slug}/jobs?content=true`;
     case "lever": return `https://api.lever.co/v0/postings/${slug}?mode=json`;
     case "ashby": return `https://api.ashbyhq.com/posting-api/job-board/${slug}?includeCompensation=true`;
+    case "custom": return "manual";
   }
 }
 

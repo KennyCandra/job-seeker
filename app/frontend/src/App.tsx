@@ -62,7 +62,7 @@ export default function App() {
         {page === "profile" && <ProfilePage />}
       </main>
       <TaskDrawer onViewTask={navigateToTask} />
-      <Chat />
+      <Chat onViewJobs={() => setPage("jobs")} />
     </div>
   );
 }

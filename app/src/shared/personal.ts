@@ -2,6 +2,7 @@ import { userAnswers, userProfile } from "../db";
 
 export async function getPersonalData() {
   const profile = await userProfile.instance.get();
+  console.log("[personal] profile:", profile);
   return {
     name: profile?.fullName || "",
     email: profile?.email || "",

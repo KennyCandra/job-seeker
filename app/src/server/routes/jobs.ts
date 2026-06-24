@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "fs";
 import { jobs, applications, jobFilters, jobDocuments } from "../../db";
 import { sendError } from "../middleware/response";
 import { enqueueTask } from "../../queue/enqueue";
+import { ManualJobValidationError, saveManualJobFromText } from "../../jobs/manual";
 
 const router = Router();
 
@@ -60,6 +61,20 @@ router.post("/api/jobs/smart-filter-accepted", async (req: Request, res: Respons
     res.json({ ok: true, ...result });
   } catch (err: any) {
     sendError(res, err.message);
+  }
+});
+
+router.post("/api/jobs/manual", async (req: Request, res: Response) => {
+  try {
+    const { text } = req.body as { text?: string };
+    const job = await saveManualJobFromText(String(text || ""));
+    res.status(201).json({ ok: true, job });
+  } catch (err: any) {
+    if (err instanceof ManualJobValidationError) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    res.status(500).json({ error: err.message });
   }
 });
 
