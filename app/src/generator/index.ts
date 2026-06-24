@@ -123,7 +123,10 @@ export async function compilePdf(
   const resumePath = join(jobDir, "resume.json");
   writeJson(resumePath, resume);
 
-  const pdfPath = join(jobDir, `${slug(job.company)}.pdf`);
+  const pdfPath = join(
+    jobDir,
+    `${slug(profileData.name)}-${slug(job.title)}-${slug(job.company)}-cv.pdf`,
+  );
   await generateResume(resumePath, profileData, pdfPath);
   return pdfPath;
 }
@@ -175,7 +178,6 @@ export async function makeCvForJob(
 
 export async function generateCvDocument(
   job: JobRecord,
-  score: number,
   client?: OpenCodeClient,
 ): Promise<string> {
   const c = getClient(client);
@@ -198,7 +200,6 @@ export async function generateCvDocument(
     jobId: job.id,
     type: "cv",
     filePath: pdfPath,
-    metadata: { score },
   });
 
   return pdfPath;

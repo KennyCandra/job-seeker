@@ -2,7 +2,6 @@ import { registerHandler } from "./handler";
 import { createApplicationHandler } from "./handlers/createApplication";
 import { discoverCompaniesHandler } from "./handlers/discoverCompanies";
 import { discoverFetchFilterHandler } from "./handlers/discoverFetchFilter";
-import { generateDocumentHandler } from "./handlers/generateDocument";
 import { normalFilterBatchHandler } from "./handlers/normalFilterBatch";
 import { normalFilterJobHandler } from "./handlers/normalFilterJob";
 import { refetchJobHandler } from "./handlers/refetchJob";
@@ -22,7 +21,6 @@ export function registerAllHandlers(): void {
   registerHandler("smart-filter-accepted", smartFilterAcceptedHandler);
   registerHandler("smart-filter-job", smartFilterJobHandler);
   registerHandler("refetch-job", refetchJobHandler);
-  registerHandler("generate-document", generateDocumentHandler);
   registerHandler("create-application", createApplicationHandler);
   registerHandler("run-apply", runApplyHandler);
 }

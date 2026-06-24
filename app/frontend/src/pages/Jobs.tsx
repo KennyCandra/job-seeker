@@ -147,14 +147,24 @@ export default function Jobs() {
   };
 
   const handleGenerateDoc = async (jobId: string, type: "cv" | "cover_letter" | "recommendation", force = false) => {
-    await startJobTask(
-      `doc-${jobId}-${type}`,
-      "generate-document",
-      { jobId, documentType: type, force },
-      `${formatDocType(type)} ${force ? "regeneration" : "generation"}`,
-      jobId,
-      force,
-    );
+    const label = formatDocType(type);
+    const key = `doc-${jobId}-${type}`;
+    setActionLoading(key);
+    setActionMsg(null);
+
+    try {
+      const result = await api.jobs.generateDocument(jobId, type, force);
+      setActionMsg(result.message || `${label} ${result.exists ? "already exists" : "generated"}`);
+      load();
+      if (selectedId === jobId) {
+        const updated = await api.jobs.detail(jobId);
+        setDetail(updated);
+      }
+    } catch (err: any) {
+      setActionMsg(`Error: ${err.message}`);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleCreateApplication = async (jobId: string) => {

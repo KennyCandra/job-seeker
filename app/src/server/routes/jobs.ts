@@ -5,6 +5,9 @@ import { jobs, applications, jobFilters, jobDocuments } from "../../db";
 import { sendError } from "../middleware/response";
 import { enqueueTask } from "../../queue/enqueue";
 import { ManualJobValidationError, saveManualJobFromText } from "../../jobs/manual";
+import type { JobRecord } from "@shared/types";
+import { createClient } from "@shared/client";
+import { generateCoverLetterDocument, generateCvDocument, generateRecommendationDocument } from "../../generator";
 
 const router = Router();
 
@@ -246,12 +249,50 @@ router.post("/api/jobs/:jobId/documents", async (req: Request, res: Response) =>
       return;
     }
 
-    const result = await enqueueTask(
-      "generate-document",
-      { jobId, documentType: type, force: Boolean(force) },
-      { force: Boolean(force), dedupeKey: `generate-document:${jobId}:${type}` },
-    );
-    res.json({ ok: true, type, jobId, ...result });
+    const docType = String(type || "cv");
+
+    const existingDocument = findLatestDocumentByType(await jobDocuments.instance.getByJobId(jobId), docType);
+    if (existingDocument && !force) {
+      res.json({
+        ok: true,
+        jobId,
+        type: docType,
+        exists: true,
+        document: serializeDocument(jobId, existingDocument),
+        message: `${formatDocumentType(docType)} already exists`,
+      });
+      return;
+    }
+
+    const job: JobRecord = {
+      id: jobRow.id,
+      site: jobRow.ats || "",
+      title: jobRow.title,
+      company: jobRow.companyName,
+      location: jobRow.location,
+      url: jobRow.url,
+      description: jobRow.description,
+    };
+  
+    const client = createClient();
+  
+    if (docType === "cv") {
+      await generateCvDocument(job, client);
+    } else if (docType === "cover_letter") {
+      await generateCoverLetterDocument(job, client);
+    } else {
+      await generateRecommendationDocument(job, client);
+    }
+
+    const generatedDocument = findLatestDocumentByType(await jobDocuments.instance.getByJobId(jobId), docType);
+    res.json({
+      ok: true,
+      jobId,
+      type: docType,
+      exists: false,
+      document: generatedDocument ? serializeDocument(jobId, generatedDocument) : undefined,
+      message: `${formatDocumentType(docType)} ${force ? "regenerated" : "generated"}`,
+    });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -275,6 +316,33 @@ router.post("/api/jobs/:jobId/application", async (req: Request, res: Response) 
 
 function safeJsonParse(val: string, fallback: unknown) {
   try { return JSON.parse(val); } catch { return fallback; }
+}
+
+function findLatestDocumentByType(docs: any[], type: string) {
+  return docs.find((d: any) => d.type === type);
+}
+
+function serializeDocument(jobId: string, doc: any) {
+  return {
+    id: doc.id,
+    jobId: doc.jobId,
+    type: doc.type,
+    status: doc.status,
+    content: doc.content,
+    filePath: doc.filePath,
+    downloadUrl: doc.filePath
+      ? `/api/jobs/${encodeURIComponent(jobId)}/documents/${encodeURIComponent(doc.id)}/download`
+      : null,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+}
+
+function formatDocumentType(type: string) {
+  if (type === "cv") return "CV";
+  if (type === "cover_letter") return "Cover letter";
+  if (type === "recommendation") return "Recommendation";
+  return "Document";
 }
 
 export default router;

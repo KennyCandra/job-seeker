@@ -205,11 +205,14 @@ export interface TaskCreateResponse {
 
 export interface DocItem {
   id: string;
+  jobId?: string;
   type: string;
   status: string;
   content: string;
   filePath: string;
+  downloadUrl?: string | null;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface AppSummary {
@@ -412,7 +415,7 @@ export const api = {
         options || { limit: 0 },
       ),
     generateDocument: (jobId: string, type: "cv" | "cover_letter" | "recommendation", force = false) =>
-      postJson<{ ok: boolean; exists?: boolean; type: string; document?: DocItem; message?: string }>(
+      postJson<{ ok: boolean; jobId: string; exists?: boolean; type: string; document?: DocItem; message?: string }>(
         `/api/jobs/${encodeURIComponent(jobId)}/documents`,
         { type, force },
       ),

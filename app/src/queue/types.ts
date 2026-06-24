@@ -8,7 +8,6 @@ export type TaskType =
   | "smart-filter-accepted"
   | "smart-filter-job"
   | "refetch-job"
-  | "generate-document"
   | "create-application"
   | "run-apply";
 
