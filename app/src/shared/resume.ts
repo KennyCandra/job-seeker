@@ -1,7 +1,6 @@
-import type { ResumePayload } from "./types";
+import type { TailoredResumeContent } from "./types";
 
-export function normalizeResumePayload(raw: any): ResumePayload {
-  const candidate = raw.candidate || raw.contact || raw.personal_info || {};
+export function normalizeTailoredResumeContent(raw: any): TailoredResumeContent {
   const educationArray = Array.isArray(raw.education) ? raw.education : raw.education ? [raw.education] : [];
   const experienceArray = Array.isArray(raw.experience) ? raw.experience : raw.experience ? [raw.experience] : Array.isArray(raw.work) ? raw.work : raw.work ? [raw.work] : [];
   const projectsArray = Array.isArray(raw.projects) ? raw.projects : raw.projects ? [raw.projects] : [];
@@ -27,12 +26,6 @@ export function normalizeResumePayload(raw: any): ResumePayload {
   const basicsUrls = basics.urls || {};
 
   return {
-    name: raw.name || basics.name || candidate.name || "",
-    email: raw.email || basics.email || candidate.email || "",
-    phone: raw.phone || basics.phone || candidate.phone || "",
-    location: raw.location || basics.location || candidate.location || "",
-    linkedin: raw.linkedin || basics.linkedin || basicsUrls.linkedin || candidate.linkedin || "",
-    portfolio: raw.portfolio || basics.portfolio || basicsUrls.portfolio || candidate.portfolio,
     experience: experienceArray.map((item: any) => ({
       title: item.title || item.position || item.role || "",
       company: item.company || item.name || "",
@@ -59,13 +52,7 @@ export function normalizeResumePayload(raw: any): ResumePayload {
       name: item.name || "",
       link: item.link || item.url,
       description: item.description,
-      techStack: Array.isArray(item.tech) ? item.tech.join(", ") : Array.isArray(item.skills) ? item.skills.join(", ") : item.tech,
       highlights: Array.isArray(item.highlights) ? item.highlights : item.bullets,
-      skillsUsed: (() => {
-        if (Array.isArray(item.skillsUsed)) return item.skillsUsed.join(", ");
-        if (Array.isArray(item.skills_used)) return item.skills_used.join(", ");
-        return item.skillsUsed || item.skills_used;
-      })(),
     })),
   };
 }

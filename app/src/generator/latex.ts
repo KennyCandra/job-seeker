@@ -1,6 +1,13 @@
 import latex from "node-latex";
-import { mkdirSync, createWriteStream, writeFileSync, existsSync, readFileSync } from "fs";
+import {
+  mkdirSync,
+  createWriteStream,
+  writeFileSync,
+  existsSync,
+  readFileSync,
+} from "fs";
 import { dirname, join } from "path";
+import type { ProfileData } from "@shared/types";
 
 const APP_ROOT = join(import.meta.dir, "..", "..", "..");
 const TEMPLATE_PATH = join(APP_ROOT, "templates", "resume.tex");
@@ -16,6 +23,9 @@ const fallbackTemplate = `
 \\usepackage{titlesec}
 \\usepackage{xcolor}
 \\usepackage{tabularx}
+\\usepackage{graphicx}
+\\newcommand{\\githubIcon}{\\raisebox{-0.28ex}{\\includegraphics[height=1.25em]{\\detokenize{{{{githubIconPath}}}}}}}
+\\newcommand{\\linkedinIcon}{\\raisebox{-0.28ex}{\\includegraphics[height=1.25em]{\\detokenize{{{{linkedinIconPath}}}}}}}
 \\setlength{\\parskip}{1pt}
 \\definecolor{primary}{HTML}{2B3A67}
 \\definecolor{accent}{HTML}{3B82F6}
@@ -43,7 +53,7 @@ function loadTemplate(): string {
   if (existsSync(TEMPLATE_PATH)) {
     return readFileSync(TEMPLATE_PATH, "utf-8");
   }
-  
+
   return fallbackTemplate;
 }
 
@@ -68,38 +78,56 @@ function fillTemplate(data: Record<string, string>) {
   return tex;
 }
 
+function latexPath(path: string): string {
+  return path.replace(/\\/g, "/");
+}
+
 function linkify(text?: string) {
   if (!text) return "";
   const escaped = text.replace(/&/g, "\\&");
   return `\\href{${escaped}}{${sanitizeLatex(text)}}`;
 }
 
+function linkifyWithLabel(url: string | undefined, label: string) {
+  if (!url) return "";
+  const escaped = url.replace(/&/g, "\\&");
+  return `\\href{${escaped}}{${label}}`;
+}
+
 function buildExperienceHeader(job: any) {
   const company = sanitizeLatex(job.company || "");
   const title = sanitizeLatex(job.title || "");
   const dates = sanitizeLatex(job.dates || "");
+  const role = [company, title].filter(Boolean).join(" - ");
   const header = dates
-    ? `\\textbf{${company}} \\hfill {\\small\\textcolor{subtle}{${dates}}}`
-    : `\\textbf{${company}}`;
-  return `${header} \\\\\n{\\textit{\\textcolor{subtle}{${title}}}}\\\\`;
+    ? `\\textbf{${role}} \\hfill {\\small\\textcolor{subtle}{${dates}}}`
+    : `\\textbf{${role}}`;
+  return header;
 }
 
 function buildExperienceBullets(bullets?: string[]) {
   if (!bullets || bullets.length === 0) return "";
-  const items = bullets.map((b) => `\\item {\\small\\bfseries ${boldTech(sanitizeLatex(b))}}`).join("\n");
-  return `\\begin{itemize}\n${items}\n\\end{itemize}`;
+  const items = bullets
+    .map((b) => `\\item {\\small ${boldTech(sanitizeLatex(b))}}`)
+    .join("\n");
+  return `\\vspace{0.5pt}\n\\begin{itemize}\n${items}\n\\end{itemize}`;
 }
 
 function buildExperience(jobs: any[]) {
   return jobs
-    .map((job) => `${buildExperienceHeader(job)}${buildExperienceBullets(job.bullets)}`)
-    .join("\n");
+    .map(
+      (job) =>
+        `${buildExperienceHeader(job)}${buildExperienceBullets(job.bullets)}`,
+    )
+    .join("\n\\vspace{2pt}\n");
 }
 
 function buildSkills(skills: any[]) {
   if (!skills.length) return "";
   if (typeof skills[0] === "string") {
-    return skills.map((s: string) => `\\textbf{${sanitizeLatex(s)}}`).join(" | ");
+    return skills
+      .map((s: string) => `\\textbf{${sanitizeLatex(s)}}`)
+      .join(" | ");
   }
 
   const cells = skills.map((group: { category: string; items: string[] }) => {
@@ -129,7 +157,12 @@ function buildEducation(edu: any[]) {
       const course = sanitizeLatex(e.degree);
       const provider = sanitizeLatex(e.school);
       const year = sanitizeLatex(e.year);
-      const label = provider && year ? `${course} — ${provider} (${year})` : provider ? `${course} — ${provider}` : course;
+      const label =
+        provider && year
+          ? `${course} — ${provider} (${year})`
+          : provider
+            ? `${course} — ${provider}`
+            : course;
       return `\\item ${label}`;
     })
     .join("\n");
@@ -145,35 +178,50 @@ function buildProjects(projects?: any[]) {
         : `\\textbf{${sanitizeLatex(project.name)}}`;
       const lines = [title];
       if (project.description) lines.push(sanitizeLatex(project.description));
-      if (project.techStack) lines.push(`\\textit{Tech Stack:} ${sanitizeLatex(project.techStack)}`);
-      if (project.skillsUsed) lines.push(`\\textit{Skills Used:} ${sanitizeLatex(project.skillsUsed)}`);
+      const details = lines.join("\\\\[0.5pt]\n");
       if (project.highlights?.length) {
-        lines.push(
-          `\\begin{itemize}\n${project.highlights.map((b: string) => `\\item ${boldTech(sanitizeLatex(b))}`).join("\n")}\n\\end{itemize}`,
-        );
+        const bullets = project.highlights
+          .slice(0, 4)
+          .map((b: string) => `\\item ${boldTech(sanitizeLatex(b))}`)
+          .join("\n");
+        return `${details}\n\\vspace{1.5pt}\n\\begin{itemize}\n${bullets}\n\\end{itemize}`;
       }
-      return lines.join("\\\\\n");
+      return details;
     })
-    .join("\n");
+    .join("\n\\vspace{4pt}\n");
 
   return `\\section{Projects}\n${body}`;
 }
 
-export async function generateResume(jsonPath: string, outputPath: string) {
+export async function generateResume(
+  jsonPath: string,
+  profileData: ProfileData,
+  outputPath: string,
+) {
+  console.log("started generating the resume......")
   const text = readFileSync(jsonPath, "utf-8");
   const data = JSON.parse(text);
 
-  const contact = [data.location, data.phone, data.email, data.linkedin, data.portfolio]
-    .filter(Boolean)
-    .map((item: string) => linkify(item))
+  const contact = [
+    profileData.location,
+    profileData.phone,
+    profileData.email,
+    linkifyWithLabel(profileData.linkedin, "\\linkedinIcon"),
+    linkifyWithLabel(profileData.portfolio, "Portfolio"),
+    linkifyWithLabel(profileData.github, "\\githubIcon"),
+  ]
+    .filter((item): item is string => Boolean(item))
+    .map((item) => (item.startsWith("\\href{") ? item : linkify(item)))
     .join(" \\;\\textcolor{divider}{\\textbar{}}\\; ");
 
   const tex = fillTemplate({
-    name: sanitizeLatex(data.name),
+    name: sanitizeLatex(profileData.name),
+    githubIconPath: latexPath(join(APP_ROOT, "templates", "assets", "github.png")),
+    linkedinIconPath: latexPath(join(APP_ROOT, "templates", "assets", "linkedin.png")),
     contact,
     experience: buildExperience(data.experience),
     skills: buildSkills(data.skills),
-    education: buildEducation(data.education),
+    education: buildEducation(profileData.education),
     projectsSection: buildProjects(data.projects),
   });
 

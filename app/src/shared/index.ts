@@ -4,8 +4,8 @@ export {
 } from "./paths";
 export { parseAtsUrl, type ParsedAtsUrl } from "../discovery/parse/atsUrl";
 export { createClient } from "./client";
-export { getPersonalData, getProfileForLlm, getApplicationPrefsForLlm } from "./personal";
-export { normalizeResumePayload } from "./resume";
+export {  structureDataForLLM, getApplicationPrefsForLlm } from "./personal";
+export { normalizeTailoredResumeContent } from "./resume";
 export { renderApplicationMarkdown, generateDocument, extractJobFromText } from "./documents";
 export { parseJsonFromText, OpenCodeClient } from "./llm";
 export { readText, writeJson, writeText } from "./utils";

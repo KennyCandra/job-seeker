@@ -2,10 +2,10 @@ import { join } from "path";
 import { existsSync, readFileSync } from "fs";
 import { jobDir } from "../../shared/paths";
 import { generateDocument as generateDoc } from "../../shared/documents";
-import type { ResumePayload, JobRecord } from "../../shared/types";
+import type { JobRecord, TailoredResumeContent } from "../../shared/types";
 import type { AgentSkill } from "../types";
 
-async function loadResume(job: JobRecord): Promise<ResumePayload | null> {
+async function loadResume(job: JobRecord): Promise<TailoredResumeContent | null> {
   const dir = jobDir(job);
   const p = join(dir, "resume.json");
   if (existsSync(p)) return JSON.parse(readFileSync(p, "utf-8"));
@@ -32,12 +32,12 @@ export const generateDocument: AgentSkill = {
 
     try {
       if (docType === "recommendation") {
-        content = await generateDoc("recommendation", job, resume);
+        content = await generateDoc("recommendation", job);
       } else if (docType === "cover_letter") {
-        content = await generateDoc("custom", job, resume, "Write a professional cover letter, 150-220 words.");
+        content = await generateDoc("custom", job, "Write a professional cover letter, 150-220 words.");
       } else {
         const instruction = (args.custom_instruction as string) || "Write a professional message.";
-        content = await generateDoc("custom", job, resume, instruction);
+        content = await generateDoc("custom", job, instruction);
       }
     } catch (err: any) {
       return { type: "error", message: `Document generation error: ${err.message}` };

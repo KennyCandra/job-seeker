@@ -1,4 +1,9 @@
-import type { JobRecord, ResumePayload, FilterResult, FilteredJob } from "../shared/types";
+import type {
+  JobRecord,
+  TailoredResumeContent,
+  FilterResult,
+  FilteredJob,
+} from "../shared/types";
 
 export type SkillResult =
   | { type: "text"; text: string }
@@ -28,7 +33,7 @@ export type AgentSkill = {
 
 export type SessionState = {
   current_job?: JobRecord;
-  current_resume?: ResumePayload;
+  current_resume?: TailoredResumeContent;
   recent_jobs: Array<{ job: JobRecord; filter: FilterResult }>;
   last_search_results?: FilteredJob[];
 };

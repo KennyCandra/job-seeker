@@ -7,6 +7,11 @@
     "skipLibCheck": true,
     "types": ["bun"],
     "noEmit": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/types": ["app/src/shared/types.ts"],
+      "@shared/*": ["app/src/shared/*"]
+    }
   }
 }

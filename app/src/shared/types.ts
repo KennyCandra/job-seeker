@@ -17,33 +17,63 @@ export type FilterResult = {
   missing: string[];
 };
 
-export type ResumePayload = {
+export type PersonalData = {
   name: string;
   email: string;
   phone: string;
   location: string;
   linkedin: string;
   portfolio?: string;
-  experience: Array<{
-    title: string;
-    company: string;
-    dates: string;
-    bullets: string[];
-  }>;
-  skills: string[] | Array<{ category: string; items: string[] }>;
-  education: Array<{
-    degree: string;
-    school: string;
-    year: string;
-  }>;
-  projects?: Array<{
-    name: string;
-    link?: string;
-    description?: string;
-    techStack?: string;
-    highlights?: string[];
-    skillsUsed?: string;
-  }>;
+  github?: string;
+};
+
+export type SkillGroup = {
+  category: string;
+  items: string[];
+};
+
+export type ExperienceItem = {
+  title: string;
+  company: string;
+  dates: string;
+  bullets: string[];
+};
+
+export type EducationItem = {
+  degree: string;
+  school: string;
+  year?: string;
+};
+
+export type ProjectItem = {
+  name: string;
+  link?: string;
+  description?: string;
+  highlights?: string[];
+};
+
+export type TailoredResumeContent = {
+  experience: ExperienceItem[];
+  skills: string[] | SkillGroup[];
+  projects?: ProjectItem[];
+};
+
+export type StructuredDataForLlm = {
+  skills: SkillGroup[];
+  experience: ExperienceItem[];
+  projects: ProjectItem[];
+};
+
+export type ProfileData = PersonalData &
+  StructuredDataForLlm & {
+    education: EducationItem[];
+  };
+
+export type RawProfileJsonForLlm = {
+  skillsJson: string;
+  experienceJson: string;
+  educationJson: string;
+  projectsJson: string;
 };
 
 export type ApplicationPayload = {

@@ -1,43 +1,98 @@
 import { join } from "path";
 import { mkdirSync } from "fs";
 import { OpenCodeClient } from "../shared/llm";
-import type { JobRecord, ResumePayload, ApplicationPayload } from "../shared/types";
-import { writeJson, writeText } from "../shared/utils";
+import type {
+  JobRecord,
+  ApplicationPayload,
+  ProfileData,
+  TailoredResumeContent,
+} from "../shared/types";
+import { readText, writeJson, writeText } from "../shared/utils";
 import { generateResume } from "./latex";
 import { resumeSchema, applicationSchema } from "../schemas/index";
-import { buildResumePrompt, buildApplicationPrompt, buildDocumentPrompt } from "../shared/prompts";
-import { companies, jobs, jobDocuments } from "../db";
-import { APP_ROOT, slug, normalizeResumePayload, getPersonalData, getProfileForLlm, getApplicationPrefsForLlm, renderApplicationMarkdown, parseJsonFromText } from "../shared/index";
+import {
+  buildResumePrompt,
+  buildApplicationPrompt,
+  buildDocumentPrompt,
+} from "../shared/prompts";
+import { companies, jobs, jobDocuments, userProfile } from "../db";
+import {
+  APP_ROOT,
+  slug,
+  normalizeTailoredResumeContent,
+  structureDataForLLM,
+  getApplicationPrefsForLlm,
+  renderApplicationMarkdown,
+  parseJsonFromText,
+  JOBS_DIR,
+  SKILLS_DIR,
+} from "../shared/index";
+import type { UserProfileRow } from "../db/repositories/userProfile";
 
-const JOBS_DIR = join(APP_ROOT, "data", "jobs");
 function getClient(client?: OpenCodeClient): OpenCodeClient {
-  return client || new OpenCodeClient({
-    baseUrl: process.env.OPENCODE_BASE_URL || undefined,
-    model: process.env.OPENCODE_MODEL || undefined,
-    providerId: process.env.OPENCODE_PROVIDER_ID || undefined,
-  });
+  return (
+    client ||
+    new OpenCodeClient({
+      baseUrl: process.env.OPENCODE_BASE_URL || undefined,
+      model: process.env.OPENCODE_MODEL || undefined,
+      providerId: process.env.OPENCODE_PROVIDER_ID || undefined,
+    })
+  );
 }
 
-export async function generateResumeForJob(client: OpenCodeClient, job: JobRecord): Promise<ResumePayload> {
-  const profileMd = await getProfileForLlm();
-  const personal = await getPersonalData();
-  console.log(`[generator] Resume for ${job.company} - ${job.title}...`);
-  const prompt = buildResumePrompt(job, profileMd, personal);
-  const resume = await client.createResume(prompt.system, prompt.user);
-  const normalized = normalizeResumePayload(resume);
+function buildProfileData(profile: UserProfileRow): ProfileData {
+  return {
+    name: profile.fullName,
+    email: profile.email,
+    phone: profile.phone,
+    location: profile.location,
+    linkedin: profile.linkedin,
+    portfolio: profile.portfolio || undefined,
+    github: profile.github || undefined,
+    skills: JSON.parse(profile.skillsJson),
+    experience: JSON.parse(profile.experienceJson),
+    projects: JSON.parse(profile.projectsJson),
+    education: JSON.parse(profile.educationJson),
+  };
+}
 
-  normalized.name = personal.name;
-  normalized.email = personal.email;
-  normalized.phone = personal.phone;
-  normalized.location = personal.location;
-  normalized.linkedin = personal.linkedin;
-  normalized.portfolio = personal.portfolio || normalized.portfolio;
+export async function generateResumeForJob(
+  client: OpenCodeClient,
+  job: JobRecord,
+  profile: ProfileData,
+): Promise<TailoredResumeContent> {
+  if (!profile) throw new Error("there is no profile data");
+  const cvInstrctions = readText(join(SKILLS_DIR, "cv_profile.md"));
+
+  const data = {
+    skills: profile.skills,
+    experience: profile.experience,
+    projects: profile.projects,
+  };
+
+  const profileMd = await structureDataForLLM(data);
+  console.log(`[generator] Resume for ${job.company} - ${job.title}...`);
+  const { system, user } = buildResumePrompt(job, cvInstrctions, profileMd);
+  const resume = await client.createResume(system, user);
+  const normalized = normalizeTailoredResumeContent(resume);
 
   const parsed = resumeSchema.safeParse(normalized);
   if (!parsed.success) {
-    const debugPath = join(APP_ROOT, "data", "debug", `resume-${slug(job.company)}-${slug(job.title)}.json`);
-    writeJson(debugPath, { job, raw: resume, normalized, issues: parsed.error.issues });
-    throw new Error(`Resume schema mismatch for ${job.company}. See ${debugPath}`);
+    const debugPath = join(
+      APP_ROOT,
+      "data",
+      "debug",
+      `resume-${slug(job.company)}-${slug(job.title)}.json`,
+    );
+    writeJson(debugPath, {
+      job,
+      raw: resume,
+      normalized,
+      issues: parsed.error.issues,
+    });
+    throw new Error(
+      `Resume schema mismatch for ${job.company}. See ${debugPath}`,
+    );
   }
   return parsed.data;
 }
@@ -45,74 +100,127 @@ export async function generateResumeForJob(client: OpenCodeClient, job: JobRecor
 export async function generateApplicationForJob(
   client: OpenCodeClient,
   job: JobRecord,
-  resume: ResumePayload,
+  resume: TailoredResumeContent,
 ): Promise<ApplicationPayload> {
   const appPrefs = await getApplicationPrefsForLlm();
   console.log("[generator] Application copy...");
   const prompt = buildApplicationPrompt(job, resume, appPrefs);
-  const application = await client.createApplication(prompt.system, prompt.user);
+  const application = await client.createApplication(
+    prompt.system,
+    prompt.user,
+  );
   return applicationSchema.parse(application);
 }
 
-export async function compilePdf(job: JobRecord, resume: ResumePayload): Promise<string> {
+export async function compilePdf(
+  job: JobRecord,
+  resume: TailoredResumeContent,
+  profileData: ProfileData,
+): Promise<string> {
   const jobDir = join(JOBS_DIR, slug(job.company));
   mkdirSync(jobDir, { recursive: true });
 
   const resumePath = join(jobDir, "resume.json");
   writeJson(resumePath, resume);
 
-  const pdfPath = join(jobDir, `${slug(resume.name)}.pdf`);
-  await generateResume(resumePath, pdfPath);
+  const pdfPath = join(jobDir, `${slug(job.company)}.pdf`);
+  await generateResume(resumePath, profileData, pdfPath);
   return pdfPath;
 }
 
-export async function makeCvForJob(job: JobRecord, score: number, client?: OpenCodeClient): Promise<ResumePayload> {
+export async function makeCvForJob(
+  job: JobRecord,
+  score: number,
+  client?: OpenCodeClient,
+): Promise<TailoredResumeContent> {
+  const profile = await userProfile.instance.get();
+  if (!profile)
+    throw new Error("there is no profile data now you can't generate CV");
+
+  const newProf = buildProfileData(profile);
+
   const c = getClient(client);
 
   const dir = join(JOBS_DIR, slug(job.company));
   mkdirSync(dir, { recursive: true });
   await ensurePersistedJob(job);
 
-  const resume = await generateResumeForJob(c, job);
+  const resume = await generateResumeForJob(c, job, newProf);
   writeJson(join(dir, "resume.json"), resume);
 
-  const pdfPath = await compilePdf(job, resume);
+  const pdfPath = await compilePdf(job, resume, newProf);
   console.log(`[generator] PDF saved: ${pdfPath}`);
-  await jobDocuments.instance.save({ jobId: job.id, type: "cv", filePath: pdfPath, metadata: { score } });
+  await jobDocuments.instance.save({
+    jobId: job.id,
+    type: "cv",
+    filePath: pdfPath,
+    metadata: { score },
+  });
 
   const app = await generateApplicationForJob(c, job, resume);
   writeJson(join(dir, "application.json"), app);
 
   const md = renderApplicationMarkdown(job, app);
   writeText(join(dir, "application.md"), md);
-  await jobDocuments.instance.save({ jobId: job.id, type: "cover_letter", content: app.cover_letter, filePath: join(dir, "application.md"), metadata: { email_subject: app.email_subject } });
+  await jobDocuments.instance.save({
+    jobId: job.id,
+    type: "cover_letter",
+    content: app.cover_letter,
+    filePath: join(dir, "application.md"),
+    metadata: { email_subject: app.email_subject },
+  });
 
   return resume;
 }
 
-export async function generateCvDocument(job: JobRecord, score: number, client?: OpenCodeClient): Promise<string> {
+export async function generateCvDocument(
+  job: JobRecord,
+  score: number,
+  client?: OpenCodeClient,
+): Promise<string> {
   const c = getClient(client);
   const dir = join(JOBS_DIR, slug(job.company));
   mkdirSync(dir, { recursive: true });
   await ensurePersistedJob(job);
 
-  const resume = await generateResumeForJob(c, job);
+  const profile = await userProfile.instance.get();
+  if (!profile)
+    throw new Error("there is no profile data now you can't generate CV");
+
+  const newProf = buildProfileData(profile);
+
+  const resume = await generateResumeForJob(c, job , newProf);
   writeJson(join(dir, "resume.json"), resume);
 
-  const pdfPath = await compilePdf(job, resume);
+  const pdfPath = await compilePdf(job, resume, newProf);
   console.log(`[generator] CV PDF saved: ${pdfPath}`);
-  await jobDocuments.instance.save({ jobId: job.id, type: "cv", filePath: pdfPath, metadata: { score } });
+  await jobDocuments.instance.save({
+    jobId: job.id,
+    type: "cv",
+    filePath: pdfPath,
+    metadata: { score },
+  });
 
   return pdfPath;
 }
 
-export async function generateCoverLetterDocument(job: JobRecord, client?: OpenCodeClient): Promise<string> {
+export async function generateCoverLetterDocument(
+  job: JobRecord,
+  client?: OpenCodeClient,
+): Promise<string> {
   const c = getClient(client);
   const dir = join(JOBS_DIR, slug(job.company));
   mkdirSync(dir, { recursive: true });
   await ensurePersistedJob(job);
 
-  const resume = await generateResumeForJob(c, job);
+
+  const profile = await userProfile.instance.get();
+  if (!profile)
+    throw new Error("there is no profile data now you can't generate CV");
+
+  const newProf = buildProfileData(profile);
+
+  const resume = await generateResumeForJob(c, job , newProf);
   const app = await generateApplicationForJob(c, job, resume);
 
   writeJson(join(dir, "application.json"), app);
@@ -130,7 +238,10 @@ export async function generateCoverLetterDocument(job: JobRecord, client?: OpenC
   return app.cover_letter;
 }
 
-export async function generateRecommendationDocument(job: JobRecord, client?: OpenCodeClient): Promise<string> {
+export async function generateRecommendationDocument(
+  job: JobRecord,
+  client?: OpenCodeClient,
+): Promise<string> {
   const c = getClient(client);
   const dir = join(JOBS_DIR, slug(job.company));
   mkdirSync(dir, { recursive: true });

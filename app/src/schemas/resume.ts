@@ -22,18 +22,10 @@ const projectItem = z.object({
   name: z.string(),
   link: z.string().optional(),
   description: z.string().optional(),
-  techStack: z.string().optional(),
   highlights: z.array(z.string()).optional(),
-  skillsUsed: z.string().optional(),
 });
 
 export const resumeSchema = z.object({
-  name: z.string(),
-  email: z.string(),
-  phone: z.string(),
-  location: z.string(),
-  linkedin: z.string(),
-  portfolio: z.string().optional(),
   experience: z.array(experienceItem),
   skills: z.union([z.array(z.string()), z.array(skillCategory)]),
   education: z.array(educationItem).optional().default([]),

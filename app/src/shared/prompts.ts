@@ -1,4 +1,4 @@
-import type { JobRecord, ResumePayload } from "./types.ts";
+import type { JobRecord, TailoredResumeContent } from "./types.ts";
 
 const EXTRACT_SYSTEM = `Extract job posting details from the text. Return raw JSON only — no markdown, no backticks, no commentary. Fields:
 - title: job title
@@ -13,7 +13,11 @@ export function buildExtractPrompt(text: string) {
   return { system: EXTRACT_SYSTEM, user: text };
 }
 
-export function buildFilterPrompt(job: JobRecord, filterMd: string, targetCompanies?: string[]) {
+export function buildFilterPrompt(
+  job: JobRecord,
+  filterMd: string,
+  targetCompanies?: string[],
+) {
   const targetHint = targetCompanies?.length
     ? `\n\nTarget companies (prioritize these): ${targetCompanies.join(", ")}`
     : "";
@@ -23,23 +27,22 @@ export function buildFilterPrompt(job: JobRecord, filterMd: string, targetCompan
   };
 }
 
-export function buildResumePrompt(job: JobRecord, cvMd: string, personal: { name: string; email: string; phone: string; location: string; linkedin: string; portfolio?: string; github?: string }) {
-  const personalBlock = [
-    `Candidate Name: ${personal.name}`,
-    `Email: ${personal.email}`,
-    `Phone: ${personal.phone}`,
-    `Location: ${personal.location}`,
-    `LinkedIn: ${personal.linkedin}`,
-    personal.portfolio ? `Portfolio: ${personal.portfolio}` : null,
-  ].filter(Boolean).join("\n");
-
+export function buildResumePrompt(job: JobRecord, cvInstrctions: string , cvMd: string) {
   return {
-    system: cvMd,
-    user: `Create a tailored resume JSON for this job. Return JSON only. No markdown, no commentary.\n\n${personalBlock}\n\nJob Title: ${job.title}\nCompany: ${job.company}\nLocation: ${job.location}\nDescription:\n${job.description}`,
+    system: cvInstrctions,
+      user: `Create a tailored resume JSON for this job.
+      Make Sure the CV can pass the ATS Return JSON only.
+      No markdown, no commentary.
+      Job Title: ${job.title}\nCompany: ${job.company}\nLocation: ${job.location}\nDescription:\n${job.description}
+      here is the data of the user ${cvMd}`,
   };
 }
 
-export function buildApplicationPrompt(job: JobRecord, resume: ResumePayload, appMd: string) {
+export function buildApplicationPrompt(
+  job: JobRecord,
+  resume: TailoredResumeContent,
+  appMd: string,
+) {
   return {
     system: appMd,
     user: `Create application copy based on the resume and job description. Return JSON only. No markdown, no commentary.\n\nJob Title: ${job.title}\nCompany: ${job.company}\nLocation: ${job.location}\nDescription:\n${job.description}`,
@@ -52,8 +55,11 @@ export function buildDocumentPrompt(
   docsMd: string,
   customInstruction?: string,
 ) {
-  const typeLabel = docType === "recommendation" ? "recommendation letter" : "custom message";
-  const extra = customInstruction ? `\n\nCustom request: ${customInstruction}` : "";
+  const typeLabel =
+    docType === "recommendation" ? "recommendation letter" : "custom message";
+  const extra = customInstruction
+    ? `\n\nCustom request: ${customInstruction}`
+    : "";
   return {
     system: docsMd,
     user: `Create a ${typeLabel} for this job application. Return JSON only. No markdown, no commentary.\n\nJob Title: ${job.title}\nCompany: ${job.company}\nDescription:\n${job.description}${extra}`,

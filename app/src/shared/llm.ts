@@ -1,4 +1,8 @@
-import type { FilterResult, ResumePayload, ApplicationPayload } from "./types";
+import type {
+  FilterResult,
+  TailoredResumeContent,
+  ApplicationPayload,
+} from "./types";
 
 const DEFAULT_MODEL = "";
 const DEFAULT_BASE_URL = "http://127.0.0.1:4096";
@@ -97,14 +101,14 @@ export class OpenCodeClient {
     }
   }
 
-  async createResume(system: string, user: string): Promise<ResumePayload> {
+  async createResume(system: string, user: string): Promise<TailoredResumeContent> {
     const content = await this.completeJson(system, user);
     try {
-      return parseJsonFromText<ResumePayload>(content);
+      return parseJsonFromText<TailoredResumeContent>(content);
     } catch {
       this.logRawResponse("resume", content);
       const retry = await this.completeJson(`${system}\nReturn JSON only.`, `${user}\nReturn JSON only.`);
-      return parseJsonFromText<ResumePayload>(retry);
+      return parseJsonFromText<TailoredResumeContent>(retry);
     }
   }
 
