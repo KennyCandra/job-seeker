@@ -25,6 +25,9 @@ export async function sseTaskEvents(res: Response, runId: string): Promise<void>
   for (const log of logs) {
     send("log", { id: log.id, level: log.level, message: log.message, createdAt: log.createdAt });
   }
+  let lastLogCursor = logs.length > 0
+    ? { createdAt: logs[logs.length - 1].createdAt, id: logs[logs.length - 1].id }
+    : null;
 
   if (run.resultJson) send("result", JSON.parse(run.resultJson));
   if (run.error) send("error", { error: run.error });
@@ -35,7 +38,6 @@ export async function sseTaskEvents(res: Response, runId: string): Promise<void>
     return;
   }
 
-  const sentLogIds = new Set(logs.map((log) => log.id));
   const interval = setInterval(() => {
     void (async () => {
       const updatedRun = await taskRuns.instance.getById(runId);
@@ -49,10 +51,10 @@ export async function sseTaskEvents(res: Response, runId: string): Promise<void>
 
       send("status", { status: updatedRun.status });
 
-      const newLogs = (await taskRunLogs.instance.getByRunId(runId)).filter((log) => !sentLogIds.has(log.id));
+      const newLogs = await taskRunLogs.instance.getAfter(runId, lastLogCursor);
       for (const log of newLogs) {
-        sentLogIds.add(log.id);
         send("log", { id: log.id, level: log.level, message: log.message, createdAt: log.createdAt });
+        lastLogCursor = { createdAt: log.createdAt, id: log.id };
       }
 
       if (updatedRun.progressJson) {

@@ -15,7 +15,14 @@ export default function Jobs() {
   const [pageSize, setPageSize] = useState(50);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [summary, setSummary] = useState({ accepted: 0, rejected: 0, unfiltered: 0 });
+  const [summary, setSummary] = useState({
+    accepted: 0,
+    rejected: 0,
+    unfiltered: 0,
+    smartAccepted: 0,
+    smartRejected: 0,
+    smartUnfiltered: 0,
+  });
   const [filterOptions, setFilterOptions] = useState<{ companies: string[]; statuses: string[] }>({ companies: [], statuses: [] });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<JobDetail | null>(null);
@@ -25,6 +32,7 @@ export default function Jobs() {
   const [companyFilter, setCompanyFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [verdictFilter, setVerdictFilter] = useState("");
+  const [smartVerdictFilter, setSmartVerdictFilter] = useState("");
   const [minScore, setMinScore] = useState(0);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -42,6 +50,7 @@ export default function Jobs() {
       company: companyFilter,
       status: statusFilter,
       verdict: verdictFilter,
+      smartVerdict: smartVerdictFilter,
       minScore,
     }).then((result) => {
       setJobs(result.items);
@@ -55,7 +64,7 @@ export default function Jobs() {
   useEffect(() => {
     const timeout = window.setTimeout(load, 200);
     return () => window.clearTimeout(timeout);
-  }, [page, pageSize, search, companyFilter, statusFilter, verdictFilter, minScore]);
+  }, [page, pageSize, search, companyFilter, statusFilter, verdictFilter, smartVerdictFilter, minScore]);
 
   const resetToFirstPage = () => setPage(1);
 
@@ -261,6 +270,9 @@ export default function Jobs() {
   const acceptedCount = summary.accepted;
   const rejectedCount = summary.rejected;
   const unfilteredCount = summary.unfiltered;
+  const smartAcceptedCount = summary.smartAccepted;
+  const smartRejectedCount = summary.smartRejected;
+  const smartUnfilteredCount = summary.smartUnfiltered;
 
   return (
     <div className="jobs-layout">
@@ -293,10 +305,19 @@ export default function Jobs() {
           </div>
         </div>
 
-        <div className="filter-summary" style={{ marginBottom: 12 }}>
-          <span className="score-badge score-high">Accepted {acceptedCount}</span>
-          <span className="score-badge score-low">Rejected {rejectedCount}</span>
-          <span className="text-sm text-muted">Unfiltered {unfilteredCount}</span>
+        <div className="filter-summary filter-summary-bar" style={{ marginBottom: 12 }}>
+          <div className="filter-summary-group">
+            <span className="filter-summary-label">AI</span>
+            <span className="score-badge score-high">Accepted {acceptedCount}</span>
+            <span className="score-badge score-low">Rejected {rejectedCount}</span>
+            <span className="text-sm text-muted">Unfiltered {unfilteredCount}</span>
+          </div>
+          <div className="filter-summary-group">
+            <span className="filter-summary-label">Smart</span>
+            <span className="score-badge score-high">Accepted {smartAcceptedCount}</span>
+            <span className="score-badge score-low">Rejected {smartRejectedCount}</span>
+            <span className="text-sm text-muted">Unfiltered {smartUnfilteredCount}</span>
+          </div>
         </div>
 
         <div className="jobs-toolbar">
@@ -329,10 +350,19 @@ export default function Jobs() {
             setVerdictFilter(e.target.value);
             resetToFirstPage();
           }}>
-            <option value="">All filter results</option>
-            <option value="accept">Accepted</option>
-            <option value="reject">Rejected</option>
-            <option value="unfiltered">Unfiltered</option>
+            <option value="">All AI filters</option>
+            <option value="accept">AI accepted</option>
+            <option value="reject">AI rejected</option>
+            <option value="unfiltered">AI unfiltered</option>
+          </select>
+          <select value={smartVerdictFilter} onChange={(e) => {
+            setSmartVerdictFilter(e.target.value);
+            resetToFirstPage();
+          }}>
+            <option value="">All smart filters</option>
+            <option value="accept">Smart accepted</option>
+            <option value="reject">Smart rejected</option>
+            <option value="unfiltered">Smart unfiltered</option>
           </select>
           <div className="toolbar-score">
             <span className="text-sm text-muted">Min: {minScore}</span>
@@ -389,8 +419,8 @@ export default function Jobs() {
                 <th>Title</th>
                 <th>Location</th>
                 <th>ATS</th>
-                <th>Filter</th>
-                <th>Score</th>
+                <th>AI Filter</th>
+                <th>Smart Filter</th>
                 <th>Status</th>
                 <th>Docs</th>
                 <th>Updated</th>
@@ -420,20 +450,10 @@ export default function Jobs() {
                       <span className="ats-pill">{job.ats || "—"}</span>
                     </td>
                     <td>
-                      {job.verdict ? (
-                        <span className={`status-tag ${job.verdict}`}>{job.verdict === "accept" ? "accepted" : "rejected"}</span>
-                      ) : (
-                        <span className="text-muted text-sm">—</span>
-                      )}
+                      <FilterStatus verdict={job.verdict} score={job.score} />
                     </td>
                     <td>
-                      {job.score !== null ? (
-                        <span className={`score-badge ${job.score >= 80 ? "score-high" : job.score >= 65 ? "score-mid" : "score-low"}`}>
-                          {job.score}
-                        </span>
-                      ) : (
-                        <span className="text-muted text-sm">—</span>
-                      )}
+                      <FilterStatus verdict={job.smartVerdict} score={job.smartScore} />
                     </td>
                     <td>
                       <span className={`status-tag ${job.status}`}>{job.status}</span>
@@ -513,6 +533,22 @@ export default function Jobs() {
           />
         )}
       </aside>
+    </div>
+  );
+}
+
+function FilterStatus({ verdict, score }: { verdict: string | null; score: number | null }) {
+  if (!verdict && score === null) {
+    return <span className="text-muted text-sm">—</span>;
+  }
+
+  const label = verdict === "accept" ? "accepted" : verdict === "reject" ? "rejected" : verdict || "filtered";
+  const scoreClass = score === null ? "score-mid" : score >= 80 ? "score-high" : score >= 65 ? "score-mid" : "score-low";
+
+  return (
+    <div className="filter-cell">
+      {verdict && <span className={`status-tag ${verdict}`}>{label}</span>}
+      {score !== null && <span className={`score-badge ${scoreClass}`}>{score}</span>}
     </div>
   );
 }

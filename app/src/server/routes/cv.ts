@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { join } from "path";
-import { existsSync, readdirSync, writeFileSync } from "fs";
+import { readdirSync } from "fs";
 import { sseSetup, sseSend } from "../middleware/sse";
 import { JOBS_DIR, slug, createClient } from "../../shared/index";
 import { shortlist, applications } from "../../db";
@@ -9,17 +9,15 @@ import type { JobRecord } from "../../shared/types";
 
 const router = Router();
 
-router.post("/api/cv/generate", (req: Request, res: Response) => {
+router.post("/cv/generate", (req: Request, res: Response) => {
   sseSetup(res);
 
   (async () => {
     try {
-      const body = req.body as { jobId?: string; job?: JobRecord };
+      const body = req.body as { jobId?: string };
       let job: JobRecord | null = null;
 
-      if (body.job) {
-        job = body.job;
-      } else if (body.jobId) {
+      if (body.jobId) {
         const item = await shortlist.instance.getByJobId(body.jobId);
         if (item) {
           job = {
@@ -36,8 +34,8 @@ router.post("/api/cv/generate", (req: Request, res: Response) => {
       }
 
       if (!job) {
-        sseSend(res, "log", { type: "error", message: "jobId or job body required" });
-        sseSend(res, "done", { error: "jobId or job body required" });
+        sseSend(res, "log", { type: "error", message: "jobId is required" });
+        sseSend(res, "done", { error: "jobId is required" });
         res.end();
         return;
       }
@@ -45,7 +43,7 @@ router.post("/api/cv/generate", (req: Request, res: Response) => {
       sseSend(res, "log", { type: "info", message: `Generating CV for ${job.company} — ${job.title}...` });
 
       const client = createClient();
-      const resume = await makeCvForJob(job, 100, client);
+      await makeCvForJob(job, 100, client);
       const pdfFiles = (() => {
         try {
           const dir = join(JOBS_DIR, slug(job.company));

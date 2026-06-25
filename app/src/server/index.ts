@@ -21,22 +21,25 @@ import { queuesAdminBasePath, queuesAdminRouter } from "./routes/queuesAdmin";
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const FRONTEND_DIST = join(APP_ROOT, "app", "frontend", "dist");
+const apiRouter = express.Router();
 
 app.use(express.json({ limit: "10mb" }));
 
-app.use(statsRouter);
-app.use(shortlistRouter);
-app.use(applicationsRouter);
-app.use(companiesRouter);
-app.use(configRouter);
-app.use(savedJobsRouter);
-app.use(jobsRouter);
-app.use(pipelineRouter);
-app.use(cvRouter);
-app.use(jobRouter);
-app.use(applyRouter);
-app.use(tasksRouter);
-app.use(profileRouter);
+apiRouter.use(statsRouter);
+apiRouter.use(shortlistRouter);
+apiRouter.use(applicationsRouter);
+apiRouter.use(companiesRouter);
+apiRouter.use(configRouter);
+apiRouter.use(savedJobsRouter);
+apiRouter.use(jobsRouter);
+apiRouter.use(pipelineRouter);
+apiRouter.use(cvRouter);
+apiRouter.use(jobRouter);
+apiRouter.use(applyRouter);
+apiRouter.use(tasksRouter);
+apiRouter.use(profileRouter);
+
+app.use("/api", apiRouter);
 app.use(queuesAdminBasePath, queuesAdminRouter);
 
 app.get("/health", (_req: Request, res: Response) => {

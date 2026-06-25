@@ -3,7 +3,7 @@ import { getSql } from "../../db/connection";
 
 const router = Router();
 
-router.get("/api/stats", async (_req: Request, res: Response) => {
+router.get("/stats", async (_req: Request, res: Response) => {
   try {
     const [row] = await getSql().unsafe(`
       SELECT

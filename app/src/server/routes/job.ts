@@ -3,7 +3,7 @@ import { extractJobFromText } from "../../shared/documents";
 
 const router = Router();
 
-router.post("/api/job/extract", async (req: Request, res: Response) => {
+router.post("/job/extract", async (req: Request, res: Response) => {
   try {
     const { text } = req.body as { text: string };
     if (!text) { res.status(400).json({ error: "text body required" }); return; }

@@ -1,5 +1,4 @@
 import { getDb, createDatabase, createConnection, resetDb, db } from "./connection";
-import { migrate } from "./migrate";
 import { ApplicationsRepository } from "./repositories/applications";
 import { CompaniesRepository } from "./repositories/companies";
 import { ShortlistRepository } from "./repositories/shortlist";
@@ -13,7 +12,6 @@ import { TaskRunsRepository } from "./repositories/taskRuns";
 import { TaskRunLogsRepository } from "./repositories/taskRunLogs";
 import { UserProfileRepository } from "./repositories/userProfile";
 import { UserAnswersRepository } from "./repositories/userAnswers";
-import type { DrizzleDb } from "./connection";
 
 function lazyInit<T>(ref: { v: T | null }, factory: () => T): T {
   if (!ref.v) ref.v = factory();

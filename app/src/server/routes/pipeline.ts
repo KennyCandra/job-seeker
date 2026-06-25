@@ -4,7 +4,7 @@ import { sseTaskEvents } from "../../tasks/sse";
 
 const router = Router();
 
-router.get("/api/pipeline/run", (req: Request, res: Response) => {
+router.get("/pipeline/run", (req: Request, res: Response) => {
   (async () => {
     try {
       const result = await enqueueTask("sync-all-jobs", {}, { dedupeKey: "sync-all-jobs" });
@@ -15,7 +15,7 @@ router.get("/api/pipeline/run", (req: Request, res: Response) => {
   })();
 });
 
-router.get("/api/pipeline/discover", (req: Request, res: Response) => {
+router.get("/pipeline/discover", (req: Request, res: Response) => {
   (async () => {
     try {
       const result = await enqueueTask("discover-companies", {}, { dedupeKey: "discover-companies" });
@@ -26,7 +26,7 @@ router.get("/api/pipeline/discover", (req: Request, res: Response) => {
   })();
 });
 
-router.get("/api/pipeline/discover-and-process", (req: Request, res: Response) => {
+router.get("/pipeline/discover-and-process", (req: Request, res: Response) => {
   (async () => {
     try {
       const result = await enqueueTask("discover-fetch-filter", {}, { dedupeKey: "discover-fetch-filter" });

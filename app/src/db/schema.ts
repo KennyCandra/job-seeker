@@ -82,6 +82,7 @@ export const applications = pgTable("applications", {
 }, (t) => ({
   scoreCreatedIdx: index("idx_applications_score_created").on(t.score, t.createdAt),
   createdIdx: index("idx_applications_created_at").on(t.createdAt),
+  createdIdIdx: index("idx_applications_created_desc_id").on(t.createdAt, t.id),
 }));
 
 export const jobDocuments = pgTable("job_documents", {

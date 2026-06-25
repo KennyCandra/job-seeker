@@ -1,17 +1,20 @@
 import { Router, type Request, type Response } from "express";
 import { basename } from "path";
 import { existsSync, readFileSync } from "fs";
-import { jobs, applications, jobFilters, jobDocuments } from "../../db";
+import { jobDocuments, jobs } from "../../db";
+import { getSql } from "../../db/connection";
+import { getJobDetail } from "../../db/queries";
 import { sendError } from "../middleware/response";
 import { enqueueTask } from "../../queue/enqueue";
 import { ManualJobValidationError, saveManualJobFromText } from "../../jobs/manual";
 import type { JobRecord } from "@shared/types";
-import { createClient } from "@shared/client";
+import { createClient, JOBS_DIR } from "@shared/index";
 import { generateCoverLetterDocument, generateCvDocument, generateRecommendationDocument } from "../../generator";
+import { resolveContainedPath } from "../security/paths";
 
 const router = Router();
 
-router.get("/api/jobs", async (req: Request, res: Response) => {
+router.get("/jobs", async (req: Request, res: Response) => {
   try {
     const result = await jobs.instance.search({
       page: Number(req.query.page) || 1,
@@ -20,6 +23,7 @@ router.get("/api/jobs", async (req: Request, res: Response) => {
       companyName: String(req.query.company || ""),
       status: String(req.query.status || ""),
       verdict: String(req.query.verdict || ""),
+      smartVerdict: String(req.query.smartVerdict || ""),
       minScore: Number(req.query.minScore) || 0,
     });
 
@@ -29,7 +33,7 @@ router.get("/api/jobs", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/api/jobs/filter-candidates", async (req: Request, res: Response) => {
+router.post("/jobs/filter-candidates", async (req: Request, res: Response) => {
   try {
     const { limit, force, companySlug, includeClosed } = req.body as {
       limit?: number;
@@ -53,7 +57,7 @@ router.post("/api/jobs/filter-candidates", async (req: Request, res: Response) =
   }
 });
 
-router.post("/api/jobs/smart-filter-accepted", async (req: Request, res: Response) => {
+router.post("/jobs/smart-filter-accepted", async (req: Request, res: Response) => {
   try {
     const { force } = req.body as { force?: boolean };
     const result = await enqueueTask(
@@ -67,7 +71,7 @@ router.post("/api/jobs/smart-filter-accepted", async (req: Request, res: Respons
   }
 });
 
-router.post("/api/jobs/manual", async (req: Request, res: Response) => {
+router.post("/jobs/manual", async (req: Request, res: Response) => {
   try {
     const { text } = req.body as { text?: string };
     const job = await saveManualJobFromText(String(text || ""));
@@ -81,85 +85,22 @@ router.post("/api/jobs/manual", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/api/jobs/:jobId", async (req: Request, res: Response) => {
+router.get("/jobs/:jobId", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
-    const job = await jobs.instance.getById(jobId);
-    if (!job) {
+    const detail = await getJobDetail(getSql(), jobId);
+    if (!detail) {
       res.status(404).json({ error: "Job not found" });
       return;
     }
 
-    const filters = await jobFilters.instance.getByJobId(jobId);
-    const docs = await jobDocuments.instance.getByJobId(jobId);
-    const app = await applications.instance.getByJobId(jobId);
-
-    const latestFilter = filters[0];
-    const latestSmartFilter = filters.find((f: any) => f.promptVersion === "smart-filter-v1" || String(f.id).startsWith("smart-filter-"));
-    const hasAcceptedNormalFilter = filters.some((f: any) =>
-      f.verdict === "accept" && (f.promptVersion === "normal-filter-v1" || String(f.id).startsWith("normal-filter-") || String(f.id).startsWith("filter-"))
-    );
-
-    res.json({
-      id: job.id,
-      companySlug: job.companySlug,
-      companyName: job.companyName,
-      ats: job.ats,
-      externalId: job.externalId,
-      title: job.title,
-      location: job.location,
-      url: job.url,
-      description: job.description,
-      status: job.status,
-      createdAt: job.createdAt,
-      updatedAt: job.updatedAt,
-      latestFilter: latestFilter ? {
-        id: latestFilter.id,
-        verdict: latestFilter.verdict,
-        score: latestFilter.score,
-        reasons: safeJsonParse(latestFilter.reasons, []),
-        mustHaveHits: safeJsonParse(latestFilter.mustHaveHits, []),
-        missingItems: safeJsonParse(latestFilter.missingItems, []),
-        model: latestFilter.model || "",
-        promptVersion: latestFilter.promptVersion || "",
-        createdAt: latestFilter.createdAt,
-      } : null,
-      latestSmartFilter: latestSmartFilter ? {
-        id: latestSmartFilter.id,
-        verdict: latestSmartFilter.verdict,
-        score: latestSmartFilter.score,
-        reasons: safeJsonParse(latestSmartFilter.reasons, []),
-        mustHaveHits: safeJsonParse(latestSmartFilter.mustHaveHits, []),
-        missingItems: safeJsonParse(latestSmartFilter.missingItems, []),
-        model: latestSmartFilter.model || "",
-        promptVersion: latestSmartFilter.promptVersion || "",
-        createdAt: latestSmartFilter.createdAt,
-      } : null,
-      canSmartFilter: hasAcceptedNormalFilter,
-      documents: docs.map((d: any) => ({
-        id: d.id,
-        type: d.type,
-        status: d.status,
-        content: d.content,
-        filePath: d.filePath,
-        createdAt: d.createdAt,
-      })),
-      application: app ? {
-        id: app.id,
-        status: app.status,
-        score: app.score,
-        documents: app.documents,
-        notes: app.notes,
-        createdAt: app.createdAt,
-        updatedAt: app.updatedAt,
-      } : null,
-    });
+    res.json(detail);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.get("/api/jobs/:jobId/documents/:documentId/download", async (req: Request, res: Response) => {
+router.get("/jobs/:jobId/documents/:documentId/download", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
     const documentId = String(req.params.documentId);
@@ -169,12 +110,18 @@ router.get("/api/jobs/:jobId/documents/:documentId/download", async (req: Reques
       res.status(404).json({ error: "Document not found" });
       return;
     }
-    if (!doc.filePath || !existsSync(doc.filePath)) {
+    const filePath = doc.filePath ? resolveContainedPath(JOBS_DIR, doc.filePath) : null;
+    if (!filePath) {
+      res.status(403).json({ error: "Invalid document path" });
+      return;
+    }
+
+    if (!existsSync(filePath)) {
       res.status(404).json({ error: "Document file not found" });
       return;
     }
 
-    const fileName = basename(doc.filePath);
+    const fileName = basename(filePath);
     const contentType = fileName.endsWith(".pdf")
       ? "application/pdf"
       : fileName.endsWith(".md")
@@ -183,13 +130,13 @@ router.get("/api/jobs/:jobId/documents/:documentId/download", async (req: Reques
 
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-    res.send(readFileSync(doc.filePath));
+    res.send(readFileSync(filePath));
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.post("/api/jobs/:jobId/refetch", async (req: Request, res: Response) => {
+router.post("/jobs/:jobId/refetch", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
     const result = await enqueueTask("refetch-job", { jobId }, { dedupeKey: `refetch-job:${jobId}` });
@@ -199,7 +146,7 @@ router.post("/api/jobs/:jobId/refetch", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/api/jobs/:jobId/filter", async (req: Request, res: Response) => {
+router.post("/jobs/:jobId/filter", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
 
@@ -216,7 +163,7 @@ router.post("/api/jobs/:jobId/filter", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/api/jobs/:jobId/smart-filter", async (req: Request, res: Response) => {
+router.post("/jobs/:jobId/smart-filter", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
 
@@ -233,7 +180,7 @@ router.post("/api/jobs/:jobId/smart-filter", async (req: Request, res: Response)
   }
 });
 
-router.post("/api/jobs/:jobId/documents", async (req: Request, res: Response) => {
+router.post("/jobs/:jobId/documents", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
     const { type, force } = req.body as { type?: string; force?: boolean };
@@ -298,7 +245,7 @@ router.post("/api/jobs/:jobId/documents", async (req: Request, res: Response) =>
   }
 });
 
-router.post("/api/jobs/:jobId/application", async (req: Request, res: Response) => {
+router.post("/jobs/:jobId/application", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
     const jobRow = await jobs.instance.getById(jobId);
@@ -313,10 +260,6 @@ router.post("/api/jobs/:jobId/application", async (req: Request, res: Response) 
     res.status(500).json({ error: err.message });
   }
 });
-
-function safeJsonParse(val: string, fallback: unknown) {
-  try { return JSON.parse(val); } catch { return fallback; }
-}
 
 function findLatestDocumentByType(docs: any[], type: string) {
   return docs.find((d: any) => d.type === type);

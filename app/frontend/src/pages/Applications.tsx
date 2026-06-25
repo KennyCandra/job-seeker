@@ -59,6 +59,8 @@ function FilterReasons({ documents, status }: { documents: string; status: strin
 export default function Applications() {
   const [apps, setApps] = useState<ApplicationRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [generating, setGenerating] = useState<string | null>(null);
   const [genLogs, setGenLogs] = useState<{ jobId: string; logs: string[] }>({ jobId: "", logs: [] });
@@ -66,12 +68,32 @@ export default function Applications() {
   const [pdfExists, setPdfExists] = useState<Set<string>>(new Set());
   const logRef = useRef<HTMLDivElement>(null);
 
-  const load = () => {
-    setLoading(true);
-    api.applications.list().then(setApps).catch(console.error).finally(() => setLoading(false));
+  const load = (cursor?: string | null) => {
+    const append = Boolean(cursor);
+    if (append) setLoadingMore(true);
+    else setLoading(true);
+
+    api.applications.list(cursor)
+      .then((result) => {
+        setApps((current) => append ? [...current, ...result.items] : result.items);
+        setNextCursor(result.nextCursor);
+      })
+      .catch(console.error)
+      .finally(() => {
+        if (append) setLoadingMore(false);
+        else setLoading(false);
+      });
   };
 
-  useEffect(load, []);
+  const refresh = () => {
+    setLoading(true);
+    setNextCursor(null);
+    load(null);
+  };
+
+  useEffect(() => {
+    load(null);
+  }, []);
 
   useEffect(() => {
     const check = async () => {
@@ -140,7 +162,7 @@ export default function Applications() {
                   } else {
                     setPdfExists((prev) => new Set(prev).add(app.jobId));
                     setGenerating(null);
-                    load();
+                    refresh();
                   }
                 }
               } catch {}
@@ -174,7 +196,7 @@ export default function Applications() {
     <div>
       <div className="page-header">
         <h1>Applications</h1>
-        <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
+        <button className="btn btn-ghost btn-sm" onClick={refresh} disabled={loading}>
           <RefreshCw size={14} />
           {loading ? "Loading..." : "Refresh"}
         </button>
@@ -323,6 +345,15 @@ export default function Applications() {
           </tbody>
         </table>
       </div>
+
+      {nextCursor && (
+        <div style={{ display: "flex", justifyContent: "center", padding: "16px 0" }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => load(nextCursor)} disabled={loadingMore}>
+            {loadingMore ? <Loader2 size={14} className="spin" /> : <ChevronDown size={14} />}
+            {loadingMore ? "Loading..." : "Load More"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

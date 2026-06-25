@@ -3,7 +3,7 @@ import { shortlist } from "../../db";
 
 const router = Router();
 
-router.get("/api/shortlist", async (_req: Request, res: Response) => {
+router.get("/shortlist", async (_req: Request, res: Response) => {
   try {
     const items = await shortlist.instance.getAll();
     res.json(items);
@@ -12,7 +12,7 @@ router.get("/api/shortlist", async (_req: Request, res: Response) => {
   }
 });
 
-router.delete("/api/shortlist/:jobId", async (req: Request, res: Response) => {
+router.delete("/shortlist/:jobId", async (req: Request, res: Response) => {
   try {
     await shortlist.instance.delete(String(req.params.jobId));
     res.json({ ok: true });

@@ -1,15 +1,16 @@
 import { Router, type Request, type Response } from "express";
-import { isAbsolute, join, relative, resolve } from "path";
+import { join, resolve } from "path";
 import { existsSync } from "fs";
 import { jobs, applicationRuns, applicationRunSteps } from "../../db";
 import { resolveProfilePath } from "../../apply/profile";
 import { cancelPausedApplySession, resumePausedApplySession } from "../../apply/sessions";
 import { sendError } from "../middleware/response";
 import { enqueueTask } from "../../queue/enqueue";
+import { resolveContainedPath } from "../security/paths";
 
 const router = Router();
 
-router.post("/api/jobs/:jobId/apply/run", async (req: Request, res: Response) => {
+router.post("/jobs/:jobId/apply/run", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
     const job = await jobs.instance.getById(jobId);
@@ -58,7 +59,7 @@ router.post("/api/jobs/:jobId/apply/run", async (req: Request, res: Response) =>
   }
 });
 
-router.get("/api/jobs/:jobId/apply/latest", async (req: Request, res: Response) => {
+router.get("/jobs/:jobId/apply/latest", async (req: Request, res: Response) => {
   try {
     const jobId = String(req.params.jobId);
     const run = await applicationRuns.instance.getLatestByJobId(jobId);
@@ -75,7 +76,7 @@ router.get("/api/jobs/:jobId/apply/latest", async (req: Request, res: Response) 
   }
 });
 
-router.get("/api/apply/runs/:runId", async (req: Request, res: Response) => {
+router.get("/apply/runs/:runId", async (req: Request, res: Response) => {
   try {
     const runId = String(req.params.runId);
     const run = await applicationRuns.instance.getById(runId);
@@ -92,7 +93,7 @@ router.get("/api/apply/runs/:runId", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/api/apply/runs/:runId/resume", async (req: Request, res: Response) => {
+router.post("/apply/runs/:runId/resume", async (req: Request, res: Response) => {
   try {
     const runId = String(req.params.runId);
     const result = await resumePausedApplySession(runId);
@@ -102,7 +103,7 @@ router.post("/api/apply/runs/:runId/resume", async (req: Request, res: Response)
   }
 });
 
-router.post("/api/apply/runs/:runId/cancel", async (req: Request, res: Response) => {
+router.post("/apply/runs/:runId/cancel", async (req: Request, res: Response) => {
   try {
     const runId = String(req.params.runId);
     await cancelPausedApplySession(runId);
@@ -112,7 +113,7 @@ router.post("/api/apply/runs/:runId/cancel", async (req: Request, res: Response)
   }
 });
 
-router.get("/api/apply/runs/:runId/screenshots/:file", async (req: Request, res: Response) => {
+router.get("/apply/runs/:runId/screenshots/:file", async (req: Request, res: Response) => {
   try {
     const runId = String(req.params.runId);
     const fileName = String(req.params.file);
@@ -129,10 +130,8 @@ router.get("/api/apply/runs/:runId/screenshots/:file", async (req: Request, res:
     }
 
     const outputDir = resolve(run.outputDir);
-    const filePath = resolve(join(outputDir, fileName));
-    const relativePath = relative(outputDir, filePath);
-
-    if (relativePath.startsWith("..") || isAbsolute(relativePath)) {
+    const filePath = resolveContainedPath(outputDir, join(outputDir, fileName));
+    if (!filePath) {
       res.status(403).json({ error: "Invalid path" });
       return;
     }

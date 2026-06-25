@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { companies, jobs } from "../db";
 import { extractJobFromText } from "../shared/documents";
+import { slug } from "../shared/paths";
 
 const CUSTOM_COMPANY = {
   slug: "custom",
@@ -27,7 +28,7 @@ export async function saveManualJobFromText(text: string): Promise<ManualJobResu
   }
 
   const extracted = await extractJobFromText(pastedText);
-  const company = await ensureCustomCompany();
+  const company = await ensureManualCompany(extracted.company);
   const externalId = manualExternalId(extracted.url, extracted.title, pastedText);
   const id = `manual-${externalId}`;
 
@@ -67,6 +68,29 @@ export class ManualJobValidationError extends Error {
     super(message);
     this.name = "ManualJobValidationError";
   }
+}
+
+async function ensureManualCompany(companyName?: string) {
+  const name = companyName?.trim();
+  if (!name || name.toLowerCase() === "unknown company") {
+    return ensureCustomCompany();
+  }
+
+  const companySlug = slug(name);
+  let company = await companies.instance.getBySlug(companySlug);
+  if (company) return company;
+
+  await companies.instance.save({
+    slug: companySlug,
+    name,
+    ats: "custom",
+    endpoint: "manual",
+  });
+
+  company = await companies.instance.getBySlug(companySlug);
+  if (!company) throw new Error(`Failed to create manual company: ${name}`);
+
+  return company;
 }
 
 async function ensureCustomCompany() {

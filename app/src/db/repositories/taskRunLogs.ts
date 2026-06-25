@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { and, asc, desc, eq, gt, or } from "drizzle-orm";
 import { Repository } from "../repository";
 import { taskRunLogs } from "../schema";
 import type { TaskRunLogRecord } from "../../queue/types";
@@ -30,6 +30,24 @@ export class TaskRunLogsRepository extends Repository {
     const idx = all.findIndex((l) => l.id === sinceId);
     if (idx === -1) return all;
     return all.slice(idx + 1);
+  }
+
+  async getAfter(runId: string, cursor: { createdAt: string; id: string } | null, limit = 200): Promise<TaskRunLogRecord[]> {
+    const where = cursor
+      ? and(
+          eq(taskRunLogs.runId, runId),
+          or(
+            gt(taskRunLogs.createdAt, cursor.createdAt),
+            and(eq(taskRunLogs.createdAt, cursor.createdAt), gt(taskRunLogs.id, cursor.id)),
+          ),
+        )
+      : eq(taskRunLogs.runId, runId);
+
+    const rows = await this.db.select().from(taskRunLogs)
+      .where(where)
+      .orderBy(asc(taskRunLogs.createdAt), asc(taskRunLogs.id))
+      .limit(limit);
+    return rows as TaskRunLogRecord[];
   }
 }
 

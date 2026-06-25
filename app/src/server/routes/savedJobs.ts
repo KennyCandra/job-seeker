@@ -10,10 +10,11 @@ import { sendError } from "../middleware/response";
 
 const router = Router();
 
-router.get("/api/saved-jobs", async (_req: Request, res: Response) => {
+router.get("/saved-jobs", async (req: Request, res: Response) => {
   try {
-    const all = await savedJobs.instance.getAll();
-    const processedIds = new Set(await applications.instance.getProcessedJobIds());
+    const limit = parseLegacyLimit(req.query.limit);
+    const all = await savedJobs.instance.getAll(limit);
+    const processedIds = new Set(await applications.instance.getProcessedJobIdsFor(all.map((job) => job.jobId)));
     const withStatus = all.map((j) => ({ ...j, processed: processedIds.has(j.jobId) }));
     res.json(withStatus);
   } catch (err: any) {
@@ -21,10 +22,11 @@ router.get("/api/saved-jobs", async (_req: Request, res: Response) => {
   }
 });
 
-router.get("/api/saved-jobs/:company", async (req: Request, res: Response) => {
+router.get("/saved-jobs/:company", async (req: Request, res: Response) => {
   try {
-    const jobsList = await savedJobs.instance.getByCompany(String(req.params.company));
-    const processedIds = new Set(await applications.instance.getProcessedJobIds());
+    const limit = parseLegacyLimit(req.query.limit);
+    const jobsList = await savedJobs.instance.getByCompany(String(req.params.company), limit);
+    const processedIds = new Set(await applications.instance.getProcessedJobIdsFor(jobsList.map((job) => job.jobId)));
     const withStatus = jobsList.map((j) => ({ ...j, processed: processedIds.has(j.jobId) }));
     res.json(withStatus);
   } catch (err: any) {
@@ -32,7 +34,7 @@ router.get("/api/saved-jobs/:company", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/api/saved-jobs/:companySlug/:jobId/filter", async (req: Request, res: Response) => {
+router.post("/saved-jobs/:companySlug/:jobId/filter", async (req: Request, res: Response) => {
   try {
     const companySlug = String(req.params.companySlug);
     const jobId = String(req.params.jobId);
@@ -80,3 +82,8 @@ router.post("/api/saved-jobs/:companySlug/:jobId/filter", async (req: Request, r
 });
 
 export default router;
+
+function parseLegacyLimit(value: unknown): number {
+  const limit = Number(value);
+  return Number.isFinite(limit) ? Math.min(100, Math.max(1, Math.floor(limit))) : 100;
+}

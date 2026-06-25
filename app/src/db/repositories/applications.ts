@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { Repository } from "../repository";
 import { applications, companies, jobs } from "../schema";
 import type { AppStatus } from "../../shared/types";
@@ -71,6 +71,14 @@ export class ApplicationsRepository extends Repository {
 
   async getProcessedJobIds(): Promise<string[]> {
     const rows = await this.db.select({ jobId: applications.jobId }).from(applications);
+    return rows.map((r) => r.jobId);
+  }
+
+  async getProcessedJobIdsFor(jobIds: string[]): Promise<string[]> {
+    if (jobIds.length === 0) return [];
+    const rows = await this.db.select({ jobId: applications.jobId })
+      .from(applications)
+      .where(inArray(applications.jobId, jobIds));
     return rows.map((r) => r.jobId);
   }
 

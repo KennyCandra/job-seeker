@@ -23,26 +23,32 @@ const fallbackTemplate = `
 \\usepackage{titlesec}
 \\usepackage{xcolor}
 \\usepackage{tabularx}
+\\usepackage{microtype}
 \\usepackage{graphicx}
 \\newcommand{\\githubIcon}{\\raisebox{-0.28ex}{\\includegraphics[height=1.25em]{\\detokenize{{{{githubIconPath}}}}}}}
 \\newcommand{\\linkedinIcon}{\\raisebox{-0.28ex}{\\includegraphics[height=1.25em]{\\detokenize{{{{linkedinIconPath}}}}}}}
-\\setlength{\\parskip}{1pt}
+\\setlength{\\parskip}{0pt}
+\\setlength{\\parindent}{0pt}
 \\definecolor{primary}{HTML}{2B3A67}
 \\definecolor{accent}{HTML}{3B82F6}
 \\definecolor{subtle}{HTML}{6B7280}
 \\definecolor{divider}{HTML}{D1D5DB}
 \\titleformat{\\section}{\\large\\bfseries\\color{primary}\\scshape}{}{0em}{}[\\color{divider}\\titlerule]
-\\titlespacing*{\\section}{0pt}{2pt}{1pt}
-\\setlist[itemize]{leftmargin=1em, noitemsep, topsep=0pt, label=\\textcolor{accent}{\\textbullet}}
+\\titlespacing*{\\section}{0pt}{4pt}{3pt}
+\\setlist[itemize]{leftmargin=1.1em, noitemsep, topsep=0pt, partopsep=0pt, parsep=0pt, itemsep=2pt, label=\\textcolor{accent}{\\textbullet}}
 \\pagestyle{empty}
 \\begin{document}
 \\begin{center}
-{\\LARGE\\bfseries\\color{primary} {{{name}}}}\\par\\vspace{2pt}
+{\\Large\\bfseries\\color{primary} {{{name}}}}\\par\\vspace{2pt}
 {\\small\\color{subtle} {{{contact}}}}
 \\end{center}
+\\vspace{-1pt}
 \\section{Technical Skills}
+\\vspace{1pt}
 {{{skills}}}
+\\vspace{1pt}
 \\section{Work Experience}
+\\vspace{1pt}
 {{{experience}}}
 {{{projectsSection}}}
 {{{education}}}
@@ -98,10 +104,12 @@ function buildExperienceHeader(job: any) {
   const company = sanitizeLatex(job.company || "");
   const title = sanitizeLatex(job.title || "");
   const dates = sanitizeLatex(job.dates || "");
-  const role = [company, title].filter(Boolean).join(" - ");
+  const role = company && title
+    ? `\\textbf{${company}} \\textcolor{subtle}{·} \\textit{${title}}`
+    : `\\textbf{${company || title}}`;
   const header = dates
-    ? `\\textbf{${role}} \\hfill {\\small\\textcolor{subtle}{${dates}}}`
-    : `\\textbf{${role}}`;
+    ? `${role} \\hfill {\\small\\textcolor{subtle}{${dates}}}`
+    : role;
   return header;
 }
 
@@ -119,7 +127,7 @@ function buildExperience(jobs: any[]) {
       (job) =>
         `${buildExperienceHeader(job)}${buildExperienceBullets(job.bullets)}`,
     )
-    .join("\n\\vspace{2pt}\n");
+    .join("\n\\vspace{4pt}\n");
 }
 
 function buildSkills(skills: any[]) {
@@ -145,7 +153,7 @@ function buildSkills(skills: any[]) {
 
   return [
     "\\begin{tabularx}{\\textwidth}{X X X}",
-    ...lines.map((line) => `${line} \\\\[1pt]`),
+    ...lines.map((line) => `${line} \\\\[3pt]`),
     "\\end{tabularx}",
   ].join("\n");
 }
@@ -184,7 +192,7 @@ function buildProjects(projects?: any[]) {
           .slice(0, 4)
           .map((b: string) => `\\item ${boldTech(sanitizeLatex(b))}`)
           .join("\n");
-        return `${details}\n\\vspace{1.5pt}\n\\begin{itemize}\n${bullets}\n\\end{itemize}`;
+        return `${details}\n\\vspace{2pt}\n\\begin{itemize}\n${bullets}\n\\end{itemize}`;
       }
       return details;
     })

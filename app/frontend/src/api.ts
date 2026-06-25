@@ -46,6 +46,11 @@ export interface ApplicationRow {
   updatedAt: string;
 }
 
+export interface ApplicationsListResponse {
+  items: ApplicationRow[];
+  nextCursor: string | null;
+}
+
 export interface CompanyFetchSummary {
   company: string;
   fetched: number;
@@ -159,6 +164,8 @@ export interface JobListItem {
   ats: string;
   score: number | null;
   verdict: string | null;
+  smartScore: number | null;
+  smartVerdict: string | null;
   hasCv: boolean;
   hasCoverLetter: boolean;
   hasRecommendation: boolean;
@@ -176,6 +183,9 @@ export interface JobsListResponse {
     accepted: number;
     rejected: number;
     unfiltered: number;
+    smartAccepted: number;
+    smartRejected: number;
+    smartUnfiltered: number;
   };
   options: {
     companies: string[];
@@ -298,7 +308,14 @@ export const api = {
   },
 
   applications: {
-    list: () => fetcher<ApplicationRow[]>("/api/applications"),
+    list: (cursor?: string | null) => {
+      const params = new URLSearchParams();
+      if (cursor) {
+        params.set("cursor", cursor);
+      }
+      const query = params.toString();
+      return fetcher<ApplicationsListResponse>(`/api/applications${query ? `?${query}` : ""}`);
+    },
     updateStatus: (jobId: string, status: AppStatus) =>
       fetcher<{ ok: boolean }>(
         `/api/applications/${encodeURIComponent(jobId)}/status`,
@@ -382,6 +399,7 @@ export const api = {
       company?: string;
       status?: string;
       verdict?: string;
+      smartVerdict?: string;
       minScore?: number;
     }) => {
       const params = new URLSearchParams();
@@ -391,6 +409,7 @@ export const api = {
       if (options?.company) params.set("company", options.company);
       if (options?.status) params.set("status", options.status);
       if (options?.verdict) params.set("verdict", options.verdict);
+      if (options?.smartVerdict) params.set("smartVerdict", options.smartVerdict);
       if (options?.minScore) params.set("minScore", String(options.minScore));
       const query = params.toString();
       return fetcher<JobsListResponse>(`/api/jobs${query ? `?${query}` : ""}`);
