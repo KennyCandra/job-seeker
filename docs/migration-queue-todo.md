@@ -1,5 +1,7 @@
 # Migration Queue TODO
 
+> **Status: implemented.** This design shipped in the NestJS backend (`app/backend/src/jobs/ats/migration-probe.ts` + `ingestion.service.ts`). Leftover `bull:cv-autopilot:*` keys in Redis belong to the pre-migration queue and are dead — safe to delete.
+
 ## Goal
 
 When an existing company endpoint stops working, detect whether the company moved to another supported ATS, update the company record, and ingest the response that was already fetched. Do not make a second redundant network request and do not put large ATS responses in Redis.

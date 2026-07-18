@@ -34,14 +34,9 @@
 ## Architecture
 
 ```
-                    ┌──────────────┐
-                    │   Telegram   │
-                    │     Bot      │
-                    └──────┬───────┘
-                           │
-┌──────────┐     ┌────────┴────────┐     ┌──────────┐
-│  Poller  │────▶│   Express API   │◀────│ Frontend │
-│ (cron)   │     │   :3000         │     │ (React)  │
+┌──────────┐     ┌─────────────────┐     ┌──────────┐
+│Scheduler │────▶│   NestJS API    │◀────│ Frontend │
+│ (worker) │     │   :3000         │     │ (React)  │
 └──────────┘     └────────┬────────┘     └──────────┘
                           │
                     ┌─────┴──────┐
@@ -57,7 +52,7 @@
                           │
                     ┌─────┴──────┐
                     │ PostgreSQL │
-                    │ (Drizzle)  │
+                    │ (TypeORM)  │
                     └────────────┘
 ```
 
@@ -66,8 +61,8 @@
 | Layer | Technology |
 |---|---|
 | Runtime | **Bun** — fast TS-native runtime |
-| Backend | **Express 5** — REST API server |
-| Database | **PostgreSQL 16** + **Drizzle ORM** |
+| Backend | **NestJS 11** (Express adapter) — REST API + worker |
+| Database | **PostgreSQL 16** + **TypeORM** |
 | Job Queue | **BullMQ** + **Redis 7** |
 | Automation | **Playwright** — browser-based ATS scraping & applying |
 | AI / LLM | **OpenCode API** (local) or Anthropic / OpenAI |
@@ -101,7 +96,7 @@ cp .env.example .env   # (or use the existing .env)
 
 | Variable | Default | Required | Description |
 |---|---|---|---|
-| `PORT` | `3000` | | Express server port |
+| `PORT` | `3000` | | API server port |
 | `TELEGRAM_BOT_TOKEN` | — | ✅ | Telegram bot token |
 | `SERPAPI_KEY` | — | | SerpAPI API key (for company discovery) |
 | `DATABASE_URL` | `postgres://cv_autopilot:cv_autopilot@localhost:5432/cv_autopilot` | | PostgreSQL connection |
@@ -119,7 +114,7 @@ docker compose up -d   # starts PostgreSQL + Redis
 ### 4. Run Database Migrations
 
 ```bash
-bun run db:migrate
+bun run db:setup     # TypeORM baseline + migrations
 ```
 
 ### 5. Start the App
@@ -130,7 +125,7 @@ bun dev
 
 This launches concurrently:
 - **PostgreSQL + Redis** (Docker)
-- **Express API server** (watched, port 3000)
+- **NestJS API server** (watched, port 3000)
 - **BullMQ Worker** (processes background tasks)
 - **React Frontend** (Vite dev server, proxied through :3000)
 
@@ -203,21 +198,21 @@ Open **http://localhost:3000** for the full React management UI:
 ```
 orchestration/
 ├── app/
-│   ├── src/
-│   │   ├── server/           # Express routes (15 route modules)
-│   │   ├── queue/            # BullMQ connection + worker
-│   │   ├── tasks/            # Task handler system (discover, fetch, filter, apply...)
-│   │   ├── pipeline/         # Pipeline orchestration
-│   │   ├── discovery/        # Company & job discovery (Playwright, SerpAPI)
-│   │   ├── filter/           # AI job filtering
-│   │   ├── generator/        # Document generation (CV, cover letter)
-│   │   ├── apply/            # Automated application runner (Playwright)
-│   │   ├── agent/            # AI agent with intent routing
-│   │   ├── telegram/         # Telegram bot interface
-│   │   ├── poller/           # Scheduled polling
-│   │   ├── db/               # PostgreSQL + Drizzle ORM (10 tables)
-│   │   ├── shared/           # Shared types, config, LLM client, utilities
-│   │   └── main.ts           # Entry point
+│   ├── backend/
+│   │   ├── src/
+│   │   │   ├── jobs/         # ATS fetching, ingestion, sync tasks
+│   │   │   ├── companies/    # Company CRUD + fetch triggers
+│   │   │   ├── discovery/    # Company discovery (SerpAPI)
+│   │   │   ├── filter/       # AI job filtering
+│   │   │   ├── documents/    # Document generation (CV, cover letter)
+│   │   │   ├── apply/        # Automated application runner (Playwright)
+│   │   │   ├── tasks/        # Task registry, runs, SSE
+│   │   │   ├── database/     # PostgreSQL + TypeORM (repositories, migrations)
+│   │   │   ├── shared/       # Shared types, config, LLM client, utilities
+│   │   │   ├── main.ts       # API entry point
+│   │   │   └── worker.ts     # Worker entry point
+│   │   ├── test/             # bun test suites
+│   │   └── scripts/          # smoke.ts + maintenance
 │   ├── frontend/             # React 19 dashboard (8 pages)
 │   ├── skills/               # Editable LLM system prompts (markdown)
 │   └── templates/            # LaTeX resume template + Dockerfile
@@ -248,7 +243,7 @@ Edit the markdown files in `app/skills/` to change AI behavior without touching 
 bun dev              # Full dev mode (all services watched)
 bun run dev:server   # API server only
 bun run dev:worker   # Worker only
-bun run db:studio    # Drizzle Studio (DB GUI)
+bun run db:migrate   # TypeORM migrations
 ```
 
 ### Render the Demo Video
