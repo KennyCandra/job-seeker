@@ -1,0 +1,1 @@
+CREATE INDEX "idx_applications_created_desc_id" ON "applications" USING btree ("created_at","id");

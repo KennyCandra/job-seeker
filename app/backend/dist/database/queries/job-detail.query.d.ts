@@ -1,0 +1,50 @@
+import type { DataSource } from "typeorm";
+export type JobDetailSql = DataSource;
+export type FilterReadModel = {
+    id: string;
+    verdict: string;
+    score: number;
+    reasons: string[];
+    mustHaveHits: string[];
+    missingItems: string[];
+    model: string;
+    promptVersion: string;
+    createdAt: string;
+};
+export type DocumentReadModel = {
+    id: string;
+    type: string;
+    status: string;
+    content: string;
+    filePath: string;
+    createdAt: string;
+};
+export type ApplicationReadModel = {
+    id: string;
+    status: string;
+    score: number;
+    documents: string;
+    notes: string;
+    createdAt: string;
+    updatedAt: string;
+};
+export type JobDetailReadModel = {
+    id: string;
+    companySlug: string;
+    companyName: string;
+    ats: string;
+    externalId: string;
+    title: string;
+    location: string;
+    url: string;
+    description: string;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    latestFilter: FilterReadModel | null;
+    latestSmartFilter: FilterReadModel | null;
+    canSmartFilter: boolean;
+    documents: DocumentReadModel[];
+    application: ApplicationReadModel | null;
+};
+export declare function getJobDetail(pg: JobDetailSql, jobId: string): Promise<JobDetailReadModel | null>;

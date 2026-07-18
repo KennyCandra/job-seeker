@@ -34,6 +34,7 @@ export default function Jobs() {
   const [verdictFilter, setVerdictFilter] = useState("");
   const [smartVerdictFilter, setSmartVerdictFilter] = useState("");
   const [minScore, setMinScore] = useState(0);
+  const [fetchedWithinHours, setFetchedWithinHours] = useState(0);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
@@ -52,6 +53,7 @@ export default function Jobs() {
       verdict: verdictFilter,
       smartVerdict: smartVerdictFilter,
       minScore,
+      fetchedWithinHours,
     }).then((result) => {
       setJobs(result.items);
       setTotal(result.total);
@@ -64,7 +66,7 @@ export default function Jobs() {
   useEffect(() => {
     const timeout = window.setTimeout(load, 200);
     return () => window.clearTimeout(timeout);
-  }, [page, pageSize, search, companyFilter, statusFilter, verdictFilter, smartVerdictFilter, minScore]);
+  }, [page, pageSize, search, companyFilter, statusFilter, verdictFilter, smartVerdictFilter, minScore, fetchedWithinHours]);
 
   const resetToFirstPage = () => setPage(1);
 
@@ -364,6 +366,15 @@ export default function Jobs() {
             <option value="reject">Smart rejected</option>
             <option value="unfiltered">Smart unfiltered</option>
           </select>
+          <select value={fetchedWithinHours} onChange={(e) => {
+            setFetchedWithinHours(Number(e.target.value));
+            resetToFirstPage();
+          }}>
+            <option value={0}>All fetched jobs</option>
+            <option value={24}>Fetched in last 24 hours</option>
+            <option value={72}>Fetched in last 3 days</option>
+            <option value={168}>Fetched in last 7 days</option>
+          </select>
           <div className="toolbar-score">
             <span className="text-sm text-muted">Min: {minScore}</span>
             <input
@@ -386,6 +397,7 @@ export default function Jobs() {
             <option value={50}>50 / page</option>
             <option value={100}>100 / page</option>
             <option value={200}>200 / page</option>
+            <option value={1000}>1000 / page</option>
           </select>
         </div>
 

@@ -401,6 +401,7 @@ export const api = {
       verdict?: string;
       smartVerdict?: string;
       minScore?: number;
+      fetchedWithinHours?: number;
     }) => {
       const params = new URLSearchParams();
       if (options?.page) params.set("page", String(options.page));
@@ -411,6 +412,7 @@ export const api = {
       if (options?.verdict) params.set("verdict", options.verdict);
       if (options?.smartVerdict) params.set("smartVerdict", options.smartVerdict);
       if (options?.minScore) params.set("minScore", String(options.minScore));
+      if (options?.fetchedWithinHours) params.set("fetchedWithinHours", String(options.fetchedWithinHours));
       const query = params.toString();
       return fetcher<JobsListResponse>(`/api/jobs${query ? `?${query}` : ""}`);
     },
@@ -454,7 +456,18 @@ export const api = {
     }),
 
   tasks: {
-    list: () => fetcher<{ ok: boolean; tasks: any[] }>("/api/tasks"),
+    list: (opts?: { limit?: number; status?: string }) => {
+      const params = new URLSearchParams();
+      if (opts?.limit != null) params.set("limit", String(opts.limit));
+      if (opts?.status) params.set("status", opts.status);
+      const qs = params.toString();
+      return fetcher<{
+        ok: boolean;
+        tasks: any[];
+        total: number;
+        counts: { total: number; queued: number; running: number; completed: number; failed: number; cancelled: number };
+      }>(`/api/tasks${qs ? `?${qs}` : ""}`);
+    },
     create: (type: string, payload: Record<string, unknown>, force = false) =>
       postJson<TaskCreateResponse>(
         "/api/tasks",

@@ -9,7 +9,11 @@ export type TaskType =
   | "smart-filter-job"
   | "refetch-job"
   | "create-application"
-  | "run-apply";
+  | "run-apply"
+  | "detect-migration"
+  | "syncAllCompanies"
+  | "syncOneCompany"
+  |"handleFailedQueue";
 
 export type TaskStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 

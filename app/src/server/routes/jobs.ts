@@ -25,6 +25,7 @@ router.get("/jobs", async (req: Request, res: Response) => {
       verdict: String(req.query.verdict || ""),
       smartVerdict: String(req.query.smartVerdict || ""),
       minScore: Number(req.query.minScore) || 0,
+      fetchedWithinHours: Number(req.query.fetchedWithinHours) || 0,
     });
 
     res.json(result);

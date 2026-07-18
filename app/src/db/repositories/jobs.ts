@@ -33,6 +33,7 @@ export type JobSearchInput = {
   verdict?: string;
   smartVerdict?: string;
   minScore?: number;
+  fetchedWithinHours?: number;
 };
 
 export type JobSearchItem = {
@@ -158,8 +159,8 @@ export class JobsRepository extends Repository {
     return row ? toSavedJob(row as JobRow, company as any) : undefined;
   }
 
-  async getAll(limit = 100): Promise<SavedJob[]> {
-    const rows = await this.db.select({
+  async getAll(limit: number | null = 100): Promise<SavedJob[]> {
+    const query = this.db.select({
       id: jobs.id,
       companyId: jobs.companyId,
       externalId: jobs.externalId,
@@ -178,7 +179,8 @@ export class JobsRepository extends Repository {
       companySlug: companies.slug,
       companyName: companies.name,
       ats: companies.ats,
-    }).from(jobs).innerJoin(companies, eq(jobs.companyId, companies.id)).orderBy(desc(jobs.updatedAt)).limit(limit);
+    }).from(jobs).innerJoin(companies, eq(jobs.companyId, companies.id)).orderBy(desc(jobs.updatedAt));
+    const rows = limit === null ? await query : await query.limit(limit);
     return rows.map((r: any) => toSavedJob(r, { slug: r.companySlug, name: r.companyName, ats: r.ats }));
   }
 
@@ -186,13 +188,13 @@ export class JobsRepository extends Repository {
     return searchJobsList(getSql(), input);
   }
 
-  async getByCompany(companySlug: string, limit = 100): Promise<SavedJob[]> {
+  async getByCompany(companySlug: string, limit: number | null = 100): Promise<SavedJob[]> {
     const [company] = await this.db.select().from(companies).where(eq(companies.slug, companySlug)).limit(1);
     if (!company) return [];
-    const rows = await this.db.select().from(jobs)
+    const query = this.db.select().from(jobs)
       .where(eq(jobs.companyId, company.id))
-      .orderBy(desc(jobs.updatedAt))
-      .limit(limit);
+      .orderBy(desc(jobs.updatedAt));
+    const rows = limit === null ? await query : await query.limit(limit);
     return rows.map((r: any) => toSavedJob(r, company as any));
   }
 

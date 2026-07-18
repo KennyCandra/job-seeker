@@ -213,8 +213,8 @@ export async function getNormalFilterCandidates(
   options: CandidateFilterOptions,
 ): Promise<{ candidates: NormalFilterCandidate[]; skipped: number; skippedClosed: number; skippedExisting: number }> {
   const allJobs = options.companySlug
-    ? await jobs.instance.getByCompany(options.companySlug)
-    : await jobs.instance.getAll();
+    ? await jobs.instance.getByCompany(options.companySlug, null)
+    : await jobs.instance.getAll(null);
 
   const candidates: NormalFilterCandidate[] = [];
   let skipped = 0;

@@ -1,19 +1,17 @@
 import { start } from "./server/index";
-import { startBot } from "./telegram/index";
 import { startPollers } from "./poller/index";
 import { registerAllHandlers } from "./tasks/index";
 import { startWorker } from "./queue/worker";
+import { startMigrationWorker } from "./queue/SyncQueue";
 
 registerAllHandlers();
 
 if (process.env.ENABLE_WORKER === "true") {
   startWorker();
+  startMigrationWorker();
 }
 
 start();
-if (process.env.ENABLE_TELEGRAM_BOT === "true") {
-  startBot();
-}
 startPollers();
 
 process.on("unhandledRejection", (err) => {

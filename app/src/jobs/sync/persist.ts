@@ -30,6 +30,8 @@ export async function persistSyncResult(
     if (externalId) seenExternalIds.push(externalId);
   }
 
+  console.log(unchangedJobs , changedJobs)
+
   await jobs.instance.markClosedMissing(companyId, seenExternalIds);
 }
 

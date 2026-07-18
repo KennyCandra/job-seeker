@@ -5,7 +5,7 @@ export type JobsListSql = postgres.Sql;
 
 export async function searchJobsList(pg: JobsListSql, input: JobSearchInput): Promise<JobSearchResult> {
   const requestedPage = Math.max(1, Math.floor(Number(input.page) || 1));
-  const pageSize = Math.min(200, Math.max(10, Math.floor(Number(input.pageSize) || 50)));
+  const pageSize = Math.min(1000, Math.max(10, Math.floor(Number(input.pageSize) || 50)));
   const where: string[] = [];
   const params: Array<string | number> = [];
 
@@ -25,6 +25,11 @@ export async function searchJobsList(pg: JobsListSql, input: JobSearchInput): Pr
 
   if (input.companyName) where.push(`c.name = ${addParam(input.companyName)}`);
   if (input.status) where.push(`j.status = ${addParam(input.status)}`);
+
+  const fetchedWithinHours = Math.floor(Number(input.fetchedWithinHours) || 0);
+  if (fetchedWithinHours > 0) {
+    where.push(`j.last_seen_at::timestamptz >= NOW() - (${addParam(fetchedWithinHours)} * INTERVAL '1 hour')`);
+  }
 
   const minScore = Number(input.minScore) || 0;
   if (minScore > 0) where.push(`lf.score >= ${addParam(minScore)}`);

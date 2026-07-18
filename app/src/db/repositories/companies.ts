@@ -23,7 +23,14 @@ function toCompanyRecord(row: any): CompanyRecord {
 
 export class CompaniesRepository extends Repository {
   async getActive(): Promise<CompanyRecord[]> {
-    const rows = await this.db.select().from(companies).where(eq(companies.active, 1)).orderBy(asc(companies.slug));
+    const data = {
+      slug : companies.slug,
+      ats: companies.ats,
+      endpoint : companies.endpoint,
+      name: companies.name,
+      id: companies.id
+    }
+    const rows = await this.db.select(data).from(companies).where(eq(companies.active, 1)).orderBy(asc(companies.slug));
     return rows.map(toCompanyRecord);
   }
 

@@ -1,8 +1,6 @@
 import type { AtsPlatform, JobRecord, CompanyRecord } from "../shared/types";
 import { companies, jobs } from "../db";
-import { APP_ROOT, endpointForAts, parseAtsUrl, slug } from "../shared/index";
-import { join } from "path";
-import { mkdirSync } from "fs";
+import { endpointForAts, parseAtsUrl } from "../shared/index";
 import { classifyJobs } from "./sync/classify";
 import { persistSyncResult } from "./sync/persist";
 import { HttpError } from "./errors";

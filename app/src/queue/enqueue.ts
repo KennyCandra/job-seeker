@@ -9,6 +9,7 @@ function shortId(): string {
 
 const queue = new Queue(getQueueName(), { connection: getQueueConnection() });
 
+
 export async function enqueueTask(
   type: TaskType,
   payload: Record<string, unknown>,

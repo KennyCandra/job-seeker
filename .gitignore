@@ -1,6 +1,7 @@
 node_modules
 venv/
 *.md
+!docs/migration-queue-todo.md
 .gitignore
 debug-*
 data/debug/

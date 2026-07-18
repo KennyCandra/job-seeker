@@ -23,6 +23,7 @@ interface TaskRun {
 
 export default function Tasks() {
   const [tasks, setTasks] = useState<TaskRun[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const taskRun = useTaskRun();
@@ -31,6 +32,7 @@ export default function Tasks() {
     setLoading(true);
     api.tasks.list().then((res) => {
       setTasks(res.tasks || []);
+      setTotal(res.total ?? (res.tasks || []).length);
     }).catch(console.error).finally(() => setLoading(false));
   };
 
@@ -138,6 +140,11 @@ export default function Tasks() {
             </tbody>
           </table>
         </div>
+        {total > tasks.length && (
+          <div className="text-sm text-muted" style={{ marginTop: 12 }}>
+            showing {tasks.length} of {total}
+          </div>
+        )}
       </div>
 
       {selectedId && (
