@@ -5,6 +5,7 @@ export declare class TaskReaperService implements OnApplicationBootstrap {
     private readonly queue;
     private readonly taskRuns;
     private readonly logger;
+    private readonly bootTime;
     constructor(queue: Queue, taskRuns: TaskRunsRepository);
     onApplicationBootstrap(): Promise<void>;
 }

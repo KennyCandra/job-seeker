@@ -431,7 +431,10 @@ async function main() {
     const migrationEntries = files
       .map((f) => {
         const m = f.match(/^(\d+)-(.+)\.(ts|js)$/);
-        return m ? { timestamp: Number(m[1]), name: m[2] } : null;
+        // TypeORM's runner matches executed migrations by class name, which by
+        // convention is `${Name}${timestamp}` — record exactly that, or
+        // migration:run will try to re-execute the baseline.
+        return m ? { timestamp: Number(m[1]), name: `${m[2]}${m[1]}` } : null;
       })
       .filter(Boolean) as Array<{ timestamp: number; name: string }>;
 

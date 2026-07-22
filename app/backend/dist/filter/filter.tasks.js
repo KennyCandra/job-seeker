@@ -164,26 +164,17 @@ let FilterTasksService = FilterTasksService_1 = class FilterTasksService {
     async smartFilterAccepted(ctx) {
         const { log, payload, throwIfCancelled, progress } = ctx;
         const force = payload.force === true;
-        const allJobs = await this.jobs.getAll();
+        const candidateIds = await this.jobFiltersRepo.getSmartFilterCandidateJobIds(force);
         const config = await this.config.load();
-        const filterMd = "";
-        void filterMd;
-        const summary = { total: allJobs.length, candidates: 0, processed: 0, skippedNotAccepted: 0, skippedExistingSmart: 0, accepted: 0, rejected: 0, failed: 0 };
-        await log("info", `Smart filter accepted: ${allJobs.length} total jobs`);
-        for (const [index, jobRow] of allJobs.entries()) {
+        const summary = { candidates: candidateIds.length, processed: 0, accepted: 0, rejected: 0, failed: 0, missing: 0 };
+        await log("info", `Smart filter accepted: ${candidateIds.length} candidate jobs (open, latest verdict accept${force ? ", force" : ""})`);
+        for (const [index, jobId] of candidateIds.entries()) {
             await throwIfCancelled();
             if (index % 25 === 0)
-                await progress({ current: index, total: allJobs.length, processed: summary.processed });
-            const filters = await this.jobFiltersRepo.getByJobId(jobRow.id);
-            const latestFilter = filters[0];
-            const hasSmartFilter = filters.some((f) => f.promptVersion === "smart-filter-v1" || String(f.id).startsWith("smart-filter-"));
-            if (!latestFilter || latestFilter.verdict !== "accept") {
-                summary.skippedNotAccepted += 1;
-                continue;
-            }
-            summary.candidates += 1;
-            if (hasSmartFilter && !force) {
-                summary.skippedExistingSmart += 1;
+                await progress({ current: index, total: candidateIds.length, processed: summary.processed });
+            const jobRow = await this.jobs.getById(jobId);
+            if (!jobRow) {
+                summary.missing += 1;
                 continue;
             }
             const lite = this.filter.toLiteJob(jobRow);
@@ -207,7 +198,7 @@ let FilterTasksService = FilterTasksService_1 = class FilterTasksService {
                 await log("error", `Job ${jobRow.id} failed: ${err?.message ?? err}`);
             }
         }
-        await progress({ current: allJobs.length, total: allJobs.length, processed: summary.processed });
+        await progress({ current: candidateIds.length, total: candidateIds.length, processed: summary.processed });
         return summary;
     }
     async smartFilterJob(ctx) {

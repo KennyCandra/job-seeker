@@ -82,15 +82,6 @@ export class TaskRunsRepository {
     await this.dataSource.query(`UPDATE task_runs SET ${sets} WHERE id = $1`, [id, ...Object.values(updates)]);
   }
 
-  async updateBullJobId(id: string, bullJobId: string, manager?: EntityManager): Promise<void> {
-    const q = manager ?? this.dataSource;
-    await q.query(`UPDATE task_runs SET bull_job_id = $1, updated_at = $2 WHERE id = $3`, [
-      bullJobId,
-      new Date().toISOString(),
-      id,
-    ]);
-  }
-
   async updateProgress(id: string, progress: unknown): Promise<void> {
     await this.dataSource.query(`UPDATE task_runs SET progress_json = $1, updated_at = $2 WHERE id = $3`, [
       JSON.stringify(progress),
@@ -142,6 +133,15 @@ export class TaskRunsRepository {
   async getStatusesByIds(ids: string[]): Promise<Array<{ id: string; status: TaskStatus }>> {
     if (ids.length === 0) return [];
     return this.dataSource.query(`SELECT id, status FROM task_runs WHERE id = ANY($1)`, [ids]);
+  }
+
+  /** Most recent completed runs of one type — used by the scheduler's catch-up check. */
+  async getRecentCompletedByType(type: TaskType, limit = 20): Promise<TaskRunRecord[]> {
+    const rows = await this.dataSource.query(
+      `SELECT ${TASK_RUN_COLUMNS} FROM task_runs WHERE type = $1 AND status = 'completed' ORDER BY completed_at DESC LIMIT $2`,
+      [type, limit],
+    );
+    return rows as TaskRunRecord[];
   }
 
   async updateError(id: string, error: string): Promise<void> {

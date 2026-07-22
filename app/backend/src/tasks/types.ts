@@ -12,7 +12,8 @@ export type TaskType =
   | "run-apply"
   | "detect-migration"
   | "ln-companies"
-  | "ln-fetch-filter";
+  | "ln-fetch-filter"
+  | "daily-pipeline";
 
 // Task types with a handler registered in TaskRegistry (worker process only —
 // see jobs.tasks.ts, filter.tasks.ts, discovery.tasks.ts, applications.service.ts).
@@ -36,6 +37,7 @@ export const REGISTERED_TASK_TYPES: readonly TaskType[] = [
   "smart-filter-accepted",
   "smart-filter-job",
   "create-application",
+  "daily-pipeline",
 ];
 
 export type TaskStatus = "queued" | "running" | "completed" | "failed" | "cancelled";

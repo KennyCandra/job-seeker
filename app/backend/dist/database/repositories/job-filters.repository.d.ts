@@ -28,6 +28,7 @@ export type JobFilterRow = {
 export declare class JobFiltersRepository {
     private readonly dataSource;
     constructor(dataSource: DataSource);
+    getSmartFilterCandidateJobIds(force?: boolean): Promise<string[]>;
     save(input: SaveJobFilterInput): Promise<void>;
     getByJobId(jobId: string): Promise<JobFilterRow[]>;
 }

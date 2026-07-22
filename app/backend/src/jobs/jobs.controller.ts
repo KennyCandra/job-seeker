@@ -11,7 +11,10 @@ const filterCandidatesSchema = z.object({
   companySlug: z.string().optional(),
   includeClosed: z.boolean().optional(),
 });
-const smartFilterAcceptedSchema = z.object({ force: z.boolean().optional() });
+const smartFilterAcceptedSchema = z.object({
+  force: z.boolean().optional(),
+  limit: z.number().int().min(0).optional(),
+});
 
 @Controller("jobs")
 export class JobsController {
@@ -40,8 +43,8 @@ export class JobsController {
   }
 
   @Post("smart-filter-accepted")
-  smartFilterAccepted(@Body(new ZodValidationPipe(smartFilterAcceptedSchema)) body: { force?: boolean }) {
-    return this.jobs.smartFilterAccepted(body?.force).then((r) => ({ ok: true, ...r }));
+  smartFilterAccepted(@Body(new ZodValidationPipe(smartFilterAcceptedSchema)) body: { force?: boolean; limit?: number }) {
+    return this.jobs.smartFilterAccepted(body?.force, body?.limit).then((r) => ({ ok: true, ...r }));
   }
 
   @Post("manual")

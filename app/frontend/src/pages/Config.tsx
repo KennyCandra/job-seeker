@@ -109,7 +109,10 @@ export default function Config() {
   return (
     <div>
       <div className="page-header">
-        <h1>Search Config</h1>
+        <div>
+          <h1>Search Config</h1>
+          <div className="page-subtitle">Tune the roles, locations, and platforms the pipeline searches.</div>
+        </div>
         <div className="flex gap-8">
           <span className="text-sm text-muted" style={{ alignSelf: "center" }}>
             {saved && "Saved!"}

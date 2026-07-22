@@ -1,10 +1,12 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { TaskRegistry } from "../tasks/task-registry";
 import { TaskQueueService } from "../tasks/task-queue.service";
 import { TaskRunsService } from "../tasks/task-runs.service";
 import { JobsRepository, JobFiltersRepository } from "../database/repositories";
 import { FilterService } from "./filter.service";
 import { SearchConfigService } from "../config/search-config.service";
+import type { EnvConfig } from "../config/env";
 import type { TaskHandlerContext } from "../tasks/types";
 
 @Injectable()
@@ -19,6 +21,7 @@ export class FilterTasksService implements OnModuleInit {
     private readonly filter: FilterService,
     private readonly config: SearchConfigService,
     private readonly jobFiltersRepo: JobFiltersRepository,
+    private readonly env: ConfigService<EnvConfig>,
   ) {}
 
   onModuleInit() {
@@ -152,23 +155,43 @@ export class FilterTasksService implements OnModuleInit {
   private async smartFilterAccepted(ctx: TaskHandlerContext): Promise<unknown> {
     const { log, payload, throwIfCancelled, progress } = ctx;
     const force = payload.force === true;
-    const allJobs = await this.jobs.getAll();
+    const allCandidateIds = await this.jobFiltersRepo.getSmartFilterCandidateJobIds(force);
+
+    // Cap how many jobs a single run sends to the LLM so we never blast the whole
+    // accepted pool in one shot. Because getSmartFilterCandidateJobIds already
+    // excludes jobs that have a smart filter, consecutive runs drain the backlog
+    // automatically — each run just takes the next slice. limit <= 0 = unlimited.
+    const envLimit = this.env.get("SMART_FILTER_BATCH_LIMIT", { infer: true }) ?? 0;
+    const rawLimit = payload.limit != null ? Number(payload.limit) : envLimit;
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.floor(rawLimit) : 0;
+    const candidateIds = limit > 0 ? allCandidateIds.slice(0, limit) : allCandidateIds;
+    const remaining = Math.max(0, allCandidateIds.length - candidateIds.length);
+
     const config = await this.config.load();
-    const filterMd = "";
-    void filterMd;
-    const summary = { total: allJobs.length, candidates: 0, processed: 0, skippedNotAccepted: 0, skippedExistingSmart: 0, accepted: 0, rejected: 0, failed: 0 };
+    const summary = {
+      candidates: allCandidateIds.length,
+      batch: candidateIds.length,
+      remaining,
+      limit,
+      processed: 0,
+      accepted: 0,
+      rejected: 0,
+      failed: 0,
+      missing: 0,
+    };
 
-    await log("info", `Smart filter accepted: ${allJobs.length} total jobs`);
+    await log(
+      "info",
+      `Smart filter accepted: ${allCandidateIds.length} pending (open, latest verdict accept${force ? ", force" : ""}); ` +
+        `processing ${candidateIds.length} this run${limit > 0 ? ` (cap ${limit})` : ""}, ${remaining} remaining`,
+    );
 
-    for (const [index, jobRow] of allJobs.entries()) {
+    for (const [index, jobId] of candidateIds.entries()) {
       await throwIfCancelled();
-      if (index % 25 === 0) await progress({ current: index, total: allJobs.length, processed: summary.processed });
-      const filters = await this.jobFiltersRepo.getByJobId(jobRow.id);
-      const latestFilter = filters[0];
-      const hasSmartFilter = filters.some((f: any) => f.promptVersion === "smart-filter-v1" || String(f.id).startsWith("smart-filter-"));
-      if (!latestFilter || latestFilter.verdict !== "accept") { summary.skippedNotAccepted += 1; continue; }
-      summary.candidates += 1;
-      if (hasSmartFilter && !force) { summary.skippedExistingSmart += 1; continue; }
+      if (index % 25 === 0) await progress({ current: index, total: candidateIds.length, processed: summary.processed });
+
+      const jobRow = await this.jobs.getById(jobId);
+      if (!jobRow) { summary.missing += 1; continue; }
 
       const lite = this.filter.toLiteJob(jobRow);
       await log("info", `Smart filtering job=${jobRow.id} company=${jobRow.companyName}`);
@@ -186,7 +209,7 @@ export class FilterTasksService implements OnModuleInit {
       }
     }
 
-    await progress({ current: allJobs.length, total: allJobs.length, processed: summary.processed });
+    await progress({ current: candidateIds.length, total: candidateIds.length, processed: summary.processed });
     return summary;
   }
 

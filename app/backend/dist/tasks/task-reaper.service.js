@@ -23,6 +23,7 @@ let TaskReaperService = TaskReaperService_1 = class TaskReaperService {
     queue;
     taskRuns;
     logger = new common_1.Logger(TaskReaperService_1.name);
+    bootTime = new Date().toISOString();
     constructor(queue, taskRuns) {
         this.queue = queue;
         this.taskRuns = taskRuns;
@@ -31,6 +32,8 @@ let TaskReaperService = TaskReaperService_1 = class TaskReaperService {
         const running = await this.taskRuns.getByStatus("running");
         let reaped = 0;
         for (const run of running) {
+            if (run.startedAt && run.startedAt >= this.bootTime)
+                continue;
             const job = run.bullJobId ? await this.queue.getJob(run.bullJobId) : null;
             const state = job ? await job.getState() : "missing";
             if (state !== "active" && state !== "waiting" && state !== "delayed") {

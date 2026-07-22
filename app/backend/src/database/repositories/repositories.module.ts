@@ -13,6 +13,7 @@ import {
   TaskRunLog,
   UserProfile,
   UserAnswer,
+  CompanySnapshot,
 } from "../entities";
 import {
   CompaniesRepository,
@@ -28,6 +29,7 @@ import {
   UserAnswersRepository,
   SearchConfigRepository,
   ShortlistRepository,
+  CompanySnapshotsRepository,
 } from "./index";
 
 @Module({
@@ -45,6 +47,7 @@ import {
       TaskRunLog,
       UserProfile,
       UserAnswer,
+      CompanySnapshot,
     ]),
   ],
   providers: [
@@ -61,6 +64,7 @@ import {
     UserAnswersRepository,
     SearchConfigRepository,
     ShortlistRepository,
+    CompanySnapshotsRepository,
   ],
   exports: [
     CompaniesRepository,
@@ -76,6 +80,7 @@ import {
     UserAnswersRepository,
     SearchConfigRepository,
     ShortlistRepository,
+    CompanySnapshotsRepository,
   ],
 })
 export class RepositoriesModule {}

@@ -16,6 +16,7 @@ export declare class OpenCodeClient {
         debugDir?: string;
     });
     static fromConfig(config: ConfigService<EnvConfig>): OpenCodeClient;
+    isReachable(timeoutMs?: number): Promise<boolean>;
     completeJson(system: string, user: string): Promise<string>;
     private logTrace;
     filterJob(system: string, user: string): Promise<FilterResult>;

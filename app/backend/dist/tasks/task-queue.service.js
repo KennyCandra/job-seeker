@@ -15,7 +15,6 @@ var TaskQueueService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TaskQueueService = void 0;
 const common_1 = require("@nestjs/common");
-const typeorm_1 = require("typeorm");
 const bullmq_1 = require("bullmq");
 const bullmq_2 = require("@nestjs/bullmq");
 const repositories_1 = require("../database/repositories");
@@ -24,13 +23,11 @@ function shortId() {
     return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`.slice(0, 12);
 }
 let TaskQueueService = TaskQueueService_1 = class TaskQueueService {
-    dataSource;
     queue;
     taskRuns;
     taskRunLogs;
     logger = new common_1.Logger(TaskQueueService_1.name);
-    constructor(dataSource, queue, taskRuns, taskRunLogs) {
-        this.dataSource = dataSource;
+    constructor(queue, taskRuns, taskRunLogs) {
         this.queue = queue;
         this.taskRuns = taskRuns;
         this.taskRunLogs = taskRunLogs;
@@ -49,37 +46,33 @@ let TaskQueueService = TaskQueueService_1 = class TaskQueueService {
         }
         const runId = `task_${shortId()}`;
         const now = new Date().toISOString();
-        let bullJobId = "";
-        await this.dataSource.transaction(async (manager) => {
-            await this.taskRuns.create({
-                id: runId,
-                bullJobId: null,
-                type,
-                status: "queued",
-                dedupeKey,
-                payloadJson: JSON.stringify(payload),
-                progressJson: null,
-                resultJson: null,
-                error: null,
-                createdAt: now,
-                startedAt: null,
-                completedAt: null,
-                updatedAt: now,
-            }, manager);
-            const bullOpts = {
-                jobId: opts.jobId || runId,
-                removeOnComplete: opts.removeOnComplete ?? { age: 3600 * 24 },
-                removeOnFail: opts.removeOnFail ?? { age: 3600 * 24 },
-            };
-            if (opts.attempts !== undefined)
-                bullOpts.attempts = opts.attempts;
-            if (opts.backoff !== undefined)
-                bullOpts.backoff = opts.backoff;
-            const job = await this.queue.add(type, { runId, type, payload, force: !!opts.force }, bullOpts);
-            bullJobId = job.id ?? "";
-            await this.taskRuns.updateBullJobId(runId, bullJobId, manager);
+        const bullJobId = opts.jobId || runId;
+        await this.taskRuns.create({
+            id: runId,
+            bullJobId,
+            type,
+            status: "queued",
+            dedupeKey,
+            payloadJson: JSON.stringify(payload),
+            progressJson: null,
+            resultJson: null,
+            error: null,
+            createdAt: now,
+            startedAt: null,
+            completedAt: null,
+            updatedAt: now,
         });
-        return { runId, bullJobId: bullJobId || undefined, status: "queued" };
+        const bullOpts = {
+            jobId: bullJobId,
+            removeOnComplete: opts.removeOnComplete ?? { age: 3600 * 24 },
+            removeOnFail: opts.removeOnFail ?? { age: 3600 * 24 },
+        };
+        if (opts.attempts !== undefined)
+            bullOpts.attempts = opts.attempts;
+        if (opts.backoff !== undefined)
+            bullOpts.backoff = opts.backoff;
+        await this.queue.add(type, { runId, type, payload, force: !!opts.force }, bullOpts);
+        return { runId, bullJobId, status: "queued" };
     }
     async cancelTask(runId) {
         const run = await this.taskRuns.getById(runId);
@@ -103,9 +96,8 @@ let TaskQueueService = TaskQueueService_1 = class TaskQueueService {
 exports.TaskQueueService = TaskQueueService;
 exports.TaskQueueService = TaskQueueService = TaskQueueService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __param(1, (0, bullmq_2.InjectQueue)(constants_1.TASK_QUEUE)),
-    __metadata("design:paramtypes", [typeorm_1.DataSource,
-        bullmq_1.Queue,
+    __param(0, (0, bullmq_2.InjectQueue)(constants_1.TASK_QUEUE)),
+    __metadata("design:paramtypes", [bullmq_1.Queue,
         repositories_1.TaskRunsRepository,
         repositories_1.TaskRunLogsRepository])
 ], TaskQueueService);

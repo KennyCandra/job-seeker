@@ -25,6 +25,7 @@ const filter_worker_module_1 = require("./filter/filter.worker.module");
 const discovery_worker_module_1 = require("./discovery/discovery.worker.module");
 const applications_worker_module_1 = require("./applications/applications.worker.module");
 const apply_worker_module_1 = require("./apply/apply.worker.module");
+const pipeline_worker_module_1 = require("./pipelines/pipeline.worker.module");
 const scheduler_module_1 = require("./scheduler/scheduler.module");
 let WorkerModule = class WorkerModule {
 };
@@ -49,6 +50,7 @@ exports.WorkerModule = WorkerModule = __decorate([
             discovery_worker_module_1.DiscoveryWorkerModule,
             applications_worker_module_1.ApplicationsWorkerModule,
             apply_worker_module_1.ApplyWorkerModule,
+            pipeline_worker_module_1.PipelineWorkerModule,
             scheduler_module_1.SchedulerModule,
         ],
     })

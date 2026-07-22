@@ -102,7 +102,10 @@ export default function Companies() {
   return (
     <div>
       <div className="page-header">
-        <h1>Companies</h1>
+        <div>
+          <h1>Companies</h1>
+          <div className="page-subtitle">{companies.length} tracked companies across your ATS boards.</div>
+        </div>
         <div className="doc-actions">
           <button className="btn btn-primary btn-sm" onClick={handleDiscover} disabled={discovering}>
             {discovering ? <Loader2 size={14} className="spin" /> : <Search size={14} />}

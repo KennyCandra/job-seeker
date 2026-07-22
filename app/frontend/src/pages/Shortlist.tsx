@@ -6,9 +6,17 @@ interface LogLine {
   message: string;
 }
 
-function ScoreBadge({ score }: { score: number }) {
-  const cls = score >= 80 ? "score-high" : score >= 65 ? "score-mid" : "score-low";
-  return <span className={`score-badge ${cls}`}>{score}</span>;
+function scoreClass(score: number) {
+  return score >= 90 ? "score-high" : score >= 80 ? "score-mid" : "score-low";
+}
+
+// Verdict pill (strong/good/fair) is a presentation-only band derived from
+// the score, matching the README's scoring bands. The underlying accept/
+// reject verdict from the API is unchanged and still drives what's shown.
+function verdictBand(score: number): "strong" | "good" | "fair" {
+  if (score >= 90) return "strong";
+  if (score >= 80) return "good";
+  return "fair";
 }
 
 export default function Shortlist() {
@@ -36,10 +44,8 @@ export default function Shortlist() {
     setGenLogs([]);
     setGenDone(null);
 
-    const es = new EventSource("/api/cv/generate");
     const body = JSON.stringify({ jobId: item.jobId });
 
-    // Use POST via fetch with SSE parsing
     fetch("/api/cv/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -88,61 +94,72 @@ export default function Shortlist() {
   return (
     <div>
       <div className="page-header">
-        <h1>Shortlist</h1>
-        <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
-          {loading ? "Loading..." : "Refresh"}
-        </button>
+        <div>
+          <h1>Shortlist</h1>
+          <div className="page-subtitle">
+            {accepted.length} AI-matched roles, ranked by fit. Generate a tailored CV in one click.
+          </div>
+        </div>
+        <div className="flex" style={{ gap: 12, alignItems: "center" }}>
+          <div className="shortlist-filters">
+            <span>score ≥ 70</span>
+            <span>all platforms</span>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
+            {loading ? "Loading..." : "Refresh"}
+          </button>
+        </div>
       </div>
 
       {!loading && accepted.length === 0 && (
         <p className="text-muted">No shortlist items. Run the pipeline first.</p>
       )}
 
-      <div className="card-grid">
+      <div className="shortlist-grid">
         {accepted.map((item) => (
-          <div key={item.jobId} className="card">
-            <div className="flex items-center justify-between mb-16">
-              <ScoreBadge score={item.score} />
-              <button
-                className="btn btn-sm btn-ghost"
-                onClick={() => handleDismiss(item.jobId)}
-              >
-                ✕
-              </button>
+          <div key={item.jobId} className="shortlist-card">
+            <div className="shortlist-card-head">
+              <div className={`shortlist-score ${scoreClass(item.score)}`}>{item.score}</div>
+              <span className={`verdict-pill ${verdictBand(item.score)}`}>{verdictBand(item.score)}</span>
             </div>
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontWeight: 600, marginBottom: 2 }}>{item.title}</div>
-              <div className="text-sm text-muted">{item.company}</div>
-            </div>
-            <div className="text-sm text-muted" style={{ marginBottom: 12 }}>
-              {item.location}
-            </div>
-            {item.applyUrl && (
-              <a
-                href={item.applyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm"
-                style={{ display: "block", marginBottom: 12 }}
-              >
-                Apply URL →
-              </a>
-            )}
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => handleGenerate(item)}
-              disabled={generating === item.jobId}
-            >
-              {generating === item.jobId ? "⏳ Generating..." : "Generate CV"}
-            </button>
+            <div className="title">{item.title}</div>
+            <div className="meta">{item.company} · {item.location}</div>
 
             {item.reasons.length > 0 && (
-              <div className="text-sm text-muted" style={{ marginTop: 8 }}>
-                {item.reasons.slice(0, 2).map((r, i) => (
-                  <div key={i}>• {r}</div>
+              <div className="shortlist-reasons">
+                {item.reasons.slice(0, 3).map((r, i) => (
+                  <div key={i}>
+                    <span className="chevron">›</span>
+                    <span>{r}</span>
+                  </div>
                 ))}
               </div>
             )}
+
+            <div className="shortlist-card-actions">
+              <button
+                className="btn btn-ink"
+                onClick={() => handleGenerate(item)}
+                disabled={generating === item.jobId}
+              >
+                {generating === item.jobId ? "Generating…" : "Tailor CV"}
+              </button>
+              {item.applyUrl ? (
+                <a
+                  href={item.applyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-ghost"
+                  style={{ textDecoration: "none" }}
+                >
+                  View
+                </a>
+              ) : (
+                <button className="btn btn-ghost" onClick={() => handleDismiss(item.jobId)}>
+                  Dismiss
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>

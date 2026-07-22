@@ -17,6 +17,9 @@ export declare const envSchema: z.ZodObject<{
     APPLY_WORKER: z.ZodPipe<z.ZodDefault<z.ZodString>, z.ZodTransform<boolean, string>>;
     POLL_INTERVAL_HOURS: z.ZodDefault<z.ZodOptional<z.ZodNullable<z.ZodCoercedNumber<unknown>>>>;
     DISCOVERY_INTERVAL_HOURS: z.ZodDefault<z.ZodOptional<z.ZodNullable<z.ZodCoercedNumber<unknown>>>>;
+    DAILY_PIPELINE_ENABLED: z.ZodPipe<z.ZodDefault<z.ZodString>, z.ZodTransform<boolean, string>>;
+    DAILY_PIPELINE_HOUR: z.ZodDefault<z.ZodOptional<z.ZodNullable<z.ZodCoercedNumber<unknown>>>>;
+    DAILY_PIPELINE_CATCHUP_HOURS: z.ZodDefault<z.ZodCoercedNumber<unknown>>;
     DISCOVERY_PROVIDER: z.ZodDefault<z.ZodEnum<{
         serpapi: "serpapi";
         playwright: "playwright";

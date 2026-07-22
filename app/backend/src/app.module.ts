@@ -17,6 +17,7 @@ import { ShortlistModule } from "./shortlist/shortlist.module";
 import { ApplyModule } from "./apply/apply.module";
 import { CompatModule } from "./compat/compat.module";
 import { FrontendModule } from "./frontend.module";
+import { BullBoardAdminModule } from "./admin/bull-board.module";
 import { HealthController } from "./health.controller";
 
 @Module({
@@ -38,6 +39,7 @@ import { HealthController } from "./health.controller";
     ShortlistModule,
     ApplyModule,
     CompatModule,
+    BullBoardAdminModule,
     FrontendModule,
   ],
   controllers: [HealthController],

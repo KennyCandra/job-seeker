@@ -64,14 +64,6 @@ let TaskRunsRepository = class TaskRunsRepository {
             .join(", ");
         await this.dataSource.query(`UPDATE task_runs SET ${sets} WHERE id = $1`, [id, ...Object.values(updates)]);
     }
-    async updateBullJobId(id, bullJobId, manager) {
-        const q = manager ?? this.dataSource;
-        await q.query(`UPDATE task_runs SET bull_job_id = $1, updated_at = $2 WHERE id = $3`, [
-            bullJobId,
-            new Date().toISOString(),
-            id,
-        ]);
-    }
     async updateProgress(id, progress) {
         await this.dataSource.query(`UPDATE task_runs SET progress_json = $1, updated_at = $2 WHERE id = $3`, [
             JSON.stringify(progress),
@@ -104,6 +96,10 @@ let TaskRunsRepository = class TaskRunsRepository {
         if (ids.length === 0)
             return [];
         return this.dataSource.query(`SELECT id, status FROM task_runs WHERE id = ANY($1)`, [ids]);
+    }
+    async getRecentCompletedByType(type, limit = 20) {
+        const rows = await this.dataSource.query(`SELECT ${TASK_RUN_COLUMNS} FROM task_runs WHERE type = $1 AND status = 'completed' ORDER BY completed_at DESC LIMIT $2`, [type, limit]);
+        return rows;
     }
     async updateError(id, error) {
         await this.dataSource.query(`UPDATE task_runs SET error = $1, status = 'failed', completed_at = $2, updated_at = $2 WHERE id = $3`, [error, new Date().toISOString(), id]);

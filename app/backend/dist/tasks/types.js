@@ -15,5 +15,6 @@ exports.REGISTERED_TASK_TYPES = [
     "smart-filter-accepted",
     "smart-filter-job",
     "create-application",
+    "daily-pipeline",
 ];
 //# sourceMappingURL=types.js.map

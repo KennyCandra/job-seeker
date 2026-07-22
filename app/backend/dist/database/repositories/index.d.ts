@@ -11,4 +11,5 @@ export { UserProfileRepository } from "./user-profile.repository";
 export { UserAnswersRepository } from "./user-answers.repository";
 export { SearchConfigRepository } from "./search-config.repository";
 export { ShortlistRepository } from "./shortlist.repository";
+export { CompanySnapshotsRepository } from "./company-snapshots.repository";
 export { RepositoriesModule } from "./repositories.module";

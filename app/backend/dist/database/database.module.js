@@ -37,6 +37,7 @@ exports.DatabaseModule = DatabaseModule = __decorate([
                         entities_1.TaskRunLog,
                         entities_1.UserProfile,
                         entities_1.UserAnswer,
+                        entities_1.CompanySnapshot,
                     ],
                     synchronize: false,
                     extra: {

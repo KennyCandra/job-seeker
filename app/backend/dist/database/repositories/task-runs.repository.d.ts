@@ -23,7 +23,6 @@ export declare class TaskRunsRepository {
     getByStatus(status: TaskStatus): Promise<TaskRunRecord[]>;
     findActiveByDedupeKey(dedupeKey: string): Promise<TaskRunRecord | undefined>;
     updateStatus(id: string, status: TaskStatus): Promise<void>;
-    updateBullJobId(id: string, bullJobId: string, manager?: EntityManager): Promise<void>;
     updateProgress(id: string, progress: unknown): Promise<void>;
     updateResult(id: string, result: unknown): Promise<void>;
     listRecent(limit?: number, status?: TaskStatus): Promise<TaskRunRecord[]>;
@@ -39,5 +38,6 @@ export declare class TaskRunsRepository {
         id: string;
         status: TaskStatus;
     }>>;
+    getRecentCompletedByType(type: TaskType, limit?: number): Promise<TaskRunRecord[]>;
     updateError(id: string, error: string): Promise<void>;
 }

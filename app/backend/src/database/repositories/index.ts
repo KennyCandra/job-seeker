@@ -14,4 +14,8 @@ export { UserProfileRepository } from "./user-profile.repository";
 export { UserAnswersRepository } from "./user-answers.repository";
 export { SearchConfigRepository } from "./search-config.repository";
 export { ShortlistRepository } from "./shortlist.repository";
+export { CompanySnapshotsRepository } from "./company-snapshots.repository";
+// RepositoriesModule must be exported LAST: it imports the repository classes
+// above from this barrel, so any repo export placed after it hits a temporal
+// dead zone during module init.
 export { RepositoriesModule } from "./repositories.module";

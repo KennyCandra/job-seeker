@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { LayoutDashboard, Briefcase, CheckSquare, Building2, Settings, ListTodo, User, Activity } from "lucide-react";
+import { useEffect, useState } from "react";
 import Dashboard from "./pages/Dashboard";
 import Shortlist from "./pages/Shortlist";
 import Applications from "./pages/Applications";
@@ -10,49 +9,89 @@ import Tasks from "./pages/Tasks";
 import ProfilePage from "./pages/Profile";
 import Chat from "./pages/Chat";
 import TaskDrawer from "./components/TaskDrawer";
+import { useTaskRun } from "./hooks/useTaskRun";
+import { api } from "./api";
 
 type Page = "dashboard" | "shortlist" | "applications" | "jobs" | "companies" | "config" | "tasks" | "profile";
 
-const NAV: { id: Page; label: string; icon: React.ReactNode }[] = [
-  { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
-  { id: "shortlist", label: "Shortlist", icon: <ListTodo size={18} /> },
-  { id: "applications", label: "Applications", icon: <CheckSquare size={18} /> },
-  { id: "jobs", label: "Jobs", icon: <Briefcase size={18} /> },
-  { id: "companies", label: "Companies", icon: <Building2 size={18} /> },
-  { id: "tasks", label: "Tasks", icon: <Activity size={18} /> },
-  { id: "profile", label: "Profile", icon: <User size={18} /> },
-  { id: "config", label: "Config", icon: <Settings size={18} /> },
+const NAV: { id: Page; label: string }[] = [
+  { id: "dashboard", label: "Overview" },
+  { id: "shortlist", label: "Shortlist" },
+  { id: "applications", label: "Applications" },
+  { id: "jobs", label: "Jobs" },
+  { id: "companies", label: "Companies" },
+  { id: "tasks", label: "Tasks" },
+  { id: "profile", label: "Profile" },
+  { id: "config", label: "Config" },
 ];
 
 export default function App() {
   const [page, setPage] = useState<Page>("dashboard");
-
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [pipelineRunning, setPipelineRunning] = useState(false);
+  const pipelineRun = useTaskRun();
 
-  const navigateToTask = (runId: string) => {
+  const navigateToTask = (_runId: string) => {
     setPage("tasks");
     setDrawerOpen(false);
   };
 
+  const runPipeline = async () => {
+    if (pipelineRunning) return;
+    setPipelineRunning(true);
+    try {
+      const result = await api.tasks.create("sync-all-jobs", {});
+      pipelineRun.subscribe(result.runId);
+    } catch {
+      setPipelineRunning(false);
+    }
+  };
+
+  useEffect(() => {
+    if (
+      pipelineRun.status === "completed" ||
+      pipelineRun.status === "failed" ||
+      pipelineRun.status === "cancelled"
+    ) {
+      setPipelineRunning(false);
+    }
+  }, [pipelineRun.status]);
+
   return (
     <div className="layout">
-      <aside className="sidebar">
-        <div className="sidebar-logo">CV Autopilot</div>
-        <nav className="sidebar-nav">
-          {NAV.map((n) => (
-            <div
-              key={n.id}
-              className={`nav-item${page === n.id ? " active" : ""}`}
-              onClick={() => setPage(n.id)}
-            >
-              <span className="nav-icon">{n.icon}</span>
-              <span>{n.label}</span>
+      <div className="topbar">
+        <div className="topbar-inner">
+          <div className="topbar-left">
+            <div className="wordmark">
+              Autopilot<span>.</span>
             </div>
-          ))}
-        </nav>
-      </aside>
+            <nav className="nav-pills">
+              {NAV.map((n) => (
+                <button
+                  key={n.id}
+                  className={`nav-pill${page === n.id ? " active" : ""}`}
+                  onClick={() => setPage(n.id)}
+                >
+                  {n.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+          <div className="topbar-right">
+            <div className="worker-status">
+              <span className="status-dot" />
+              worker live
+            </div>
+            <button className="run-pipeline-btn" onClick={runPipeline} disabled={pipelineRunning}>
+              <span style={{ fontSize: 10 }}>{pipelineRunning ? "⣿" : "▶"}</span>
+              {pipelineRunning ? "Running…" : "Run pipeline"}
+            </button>
+            <div className="avatar-circle">A</div>
+          </div>
+        </div>
+      </div>
       <main className="main">
-        {page === "dashboard" && <Dashboard />}
+        {page === "dashboard" && <Dashboard onNavigate={setPage} />}
         {page === "shortlist" && <Shortlist />}
         {page === "applications" && <Applications />}
         {page === "jobs" && <Jobs />}

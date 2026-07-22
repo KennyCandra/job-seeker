@@ -30,6 +30,7 @@ exports.RepositoriesModule = RepositoriesModule = __decorate([
                 entities_1.TaskRunLog,
                 entities_1.UserProfile,
                 entities_1.UserAnswer,
+                entities_1.CompanySnapshot,
             ]),
         ],
         providers: [
@@ -46,6 +47,7 @@ exports.RepositoriesModule = RepositoriesModule = __decorate([
             index_1.UserAnswersRepository,
             index_1.SearchConfigRepository,
             index_1.ShortlistRepository,
+            index_1.CompanySnapshotsRepository,
         ],
         exports: [
             index_1.CompaniesRepository,
@@ -61,6 +63,7 @@ exports.RepositoriesModule = RepositoriesModule = __decorate([
             index_1.UserAnswersRepository,
             index_1.SearchConfigRepository,
             index_1.ShortlistRepository,
+            index_1.CompanySnapshotsRepository,
         ],
     })
 ], RepositoriesModule);

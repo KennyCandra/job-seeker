@@ -27,6 +27,25 @@ let JobFiltersRepository = class JobFiltersRepository {
     constructor(dataSource) {
         this.dataSource = dataSource;
     }
+    async getSmartFilterCandidateJobIds(force = false) {
+        const smartExclusion = force
+            ? ""
+            : `AND j.id NOT IN (
+           SELECT job_id FROM job_filters
+           WHERE prompt_version = 'smart-filter-v1' OR id LIKE 'smart-filter-%'
+         )`;
+        const rows = await this.dataSource.query(`WITH latest AS (
+         SELECT DISTINCT ON (job_id) job_id, verdict
+         FROM job_filters
+         ORDER BY job_id, created_at DESC, id ASC
+       )
+       SELECT j.id
+       FROM jobs j
+       INNER JOIN latest lf ON lf.job_id = j.id AND lf.verdict = 'accept'
+       WHERE j.status = 'open' ${smartExclusion}
+       ORDER BY j.updated_at DESC`);
+        return rows.map((r) => r.id);
+    }
     async save(input) {
         const now = input.createdAt || new Date().toISOString();
         await this.dataSource.query(`INSERT INTO job_filters (id, job_id, content_hash, verdict, score, reasons, must_have_hits, missing_items, model, prompt_version, created_at)

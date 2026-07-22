@@ -15,6 +15,7 @@ import {
   TaskRunLog,
   UserProfile,
   UserAnswer,
+  CompanySnapshot,
 } from "./entities";
 import { RepositoriesModule } from "./repositories";
 
@@ -39,6 +40,7 @@ import { RepositoriesModule } from "./repositories";
           TaskRunLog,
           UserProfile,
           UserAnswer,
+          CompanySnapshot,
         ],
         synchronize: false,
         extra: {

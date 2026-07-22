@@ -367,7 +367,7 @@ async function main() {
         const migrationEntries = files
             .map((f) => {
             const m = f.match(/^(\d+)-(.+)\.(ts|js)$/);
-            return m ? { timestamp: Number(m[1]), name: m[2] } : null;
+            return m ? { timestamp: Number(m[1]), name: `${m[2]}${m[1]}` } : null;
         })
             .filter(Boolean);
         if (migrationEntries.length === 0) {

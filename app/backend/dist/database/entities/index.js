@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UserAnswer = exports.UserProfile = exports.TaskRunLog = exports.TaskRun = exports.SearchConfigEntity = exports.JobDocument = exports.ApplicationRunStep = exports.ApplicationRun = exports.Application = exports.JobFilterEntity = exports.Job = exports.Company = void 0;
+exports.CompanySnapshot = exports.UserAnswer = exports.UserProfile = exports.TaskRunLog = exports.TaskRun = exports.SearchConfigEntity = exports.JobDocument = exports.ApplicationRunStep = exports.ApplicationRun = exports.Application = exports.JobFilterEntity = exports.Job = exports.Company = void 0;
 var company_entity_1 = require("./company.entity");
 Object.defineProperty(exports, "Company", { enumerable: true, get: function () { return company_entity_1.Company; } });
 var job_entity_1 = require("./job.entity");
@@ -25,4 +25,6 @@ var user_profile_entity_1 = require("./user-profile.entity");
 Object.defineProperty(exports, "UserProfile", { enumerable: true, get: function () { return user_profile_entity_1.UserProfile; } });
 var user_answer_entity_1 = require("./user-answer.entity");
 Object.defineProperty(exports, "UserAnswer", { enumerable: true, get: function () { return user_answer_entity_1.UserAnswer; } });
+var company_snapshot_entity_1 = require("./company-snapshot.entity");
+Object.defineProperty(exports, "CompanySnapshot", { enumerable: true, get: function () { return company_snapshot_entity_1.CompanySnapshot; } });
 //# sourceMappingURL=index.js.map

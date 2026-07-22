@@ -1,56 +1,43 @@
 import { useState, useEffect, useRef } from "react";
 import { api, type ApplicationRow, type AppStatus } from "../api";
-import { ExternalLink, Download, RefreshCw, Loader2, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { ExternalLink, RefreshCw, Loader2, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 
 const STATUSES: AppStatus[] = [
   "approved", "ready", "applied", "interviewing",
   "offer", "rejected", "ghosted", "withdrawn",
 ];
 
-function parseDocuments(docStr: string): Record<string, string> {
-  try {
-    const arr = JSON.parse(docStr);
-    if (Array.isArray(arr) && arr.length > 0) return arr[0];
-    return {};
-  } catch {
-    return {};
-  }
+function scoreClass(score: number) {
+  return score >= 90 ? "score-high" : score >= 80 ? "score-mid" : "score-low";
 }
 
-function FilterReasons({ documents, status }: { documents: string; status: string }) {
+function AiVerdict({ documents }: { documents: string }) {
   const doc = (() => {
     try { return JSON.parse(documents); } catch { return null; }
   })();
   const filter = doc?.filter as { verdict?: string; score?: number; reasons?: string[]; must_have_hits?: string[]; missing?: string[] } | undefined;
 
-  if (!filter) return null;
-
   return (
-    <div style={{ marginBottom: 12 }}>
-      <div className="detail-section-label">Filter Result</div>
-      <div className="tag-list">
-        <span className="tag" style={{ fontWeight: 600 }}>
-          {filter.verdict === "accept" ? "Accepted" : "Rejected"} · {filter.score}
-        </span>
-      </div>
-      {filter.reasons && filter.reasons.length > 0 && (
-        <div className="text-sm" style={{ marginTop: 4 }}>
-          {filter.reasons.map((r, i) => (
-            <div key={i} className="text-muted" style={{ fontSize: 12 }}>• {r}</div>
-          ))}
-        </div>
-      )}
-      {filter.must_have_hits && filter.must_have_hits.length > 0 && (
-        <div className="filter-detail" style={{ marginTop: 4 }}>
-          <span className="label">Hits: </span>
-          <span className="text-muted">{filter.must_have_hits.join(", ")}</span>
-        </div>
-      )}
-      {filter.missing && filter.missing.length > 0 && (
-        <div className="filter-detail" style={{ marginTop: 2 }}>
-          <span className="label">Missing: </span>
-          <span className="text-muted">{filter.missing.join(", ")}</span>
-        </div>
+    <div>
+      <div className="detail-section-label">AI verdict</div>
+      {filter ? (
+        <>
+          {filter.reasons && filter.reasons.length > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              {filter.reasons.map((r, i) => (
+                <div key={i} style={{ fontSize: 12.5, color: "#5f5b52", display: "block" }}>• {r}</div>
+              ))}
+            </div>
+          )}
+          <div style={{ fontSize: 12.5, color: "#5f5b52" }}>
+            <b>Strengths:</b> {filter.must_have_hits && filter.must_have_hits.length > 0 ? filter.must_have_hits.join(", ") : "—"}
+          </div>
+          <div style={{ fontSize: 12.5, color: "#5f5b52", marginTop: 2 }}>
+            <b>Gaps:</b> {filter.missing && filter.missing.length > 0 ? filter.missing.join(", ") : "—"}
+          </div>
+        </>
+      ) : (
+        <div className="text-sm text-muted">No filter result recorded for this application.</div>
       )}
     </div>
   );
@@ -195,7 +182,10 @@ export default function Applications() {
   return (
     <div>
       <div className="page-header">
-        <h1>Applications</h1>
+        <div>
+          <h1>Applications</h1>
+          <div className="page-subtitle">{apps.length} in flight. Click a row to see the AI verdict and manage documents.</div>
+        </div>
         <button className="btn btn-ghost btn-sm" onClick={refresh} disabled={loading}>
           <RefreshCw size={14} />
           {loading ? "Loading..." : "Refresh"}
@@ -211,7 +201,7 @@ export default function Applications() {
           <thead>
             <tr>
               <th>Company</th>
-              <th>Title</th>
+              <th>Role</th>
               <th>Score</th>
               <th>Status</th>
               <th>Date</th>
@@ -229,20 +219,10 @@ export default function Applications() {
                     onClick={() => setExpanded(isExpanded ? null : app.jobId)}
                     style={{ cursor: "pointer" }}
                   >
-                    <td><span className="company-badge">{app.company}</span></td>
+                    <td style={{ fontWeight: 700 }}>{app.company}</td>
                     <td>{app.title}</td>
                     <td>
-                      <span
-                        className={`score-badge ${
-                          app.score >= 80
-                            ? "score-high"
-                            : app.score >= 65
-                              ? "score-mid"
-                              : "score-low"
-                        }`}
-                      >
-                        {app.score}
-                      </span>
+                      <span className={`score-badge ${scoreClass(app.score)}`}>{app.score}</span>
                     </td>
                     <td>
                       <select
@@ -263,8 +243,8 @@ export default function Applications() {
                         ))}
                       </select>
                     </td>
-                    <td className="text-sm text-muted">
-                      {new Date(app.createdAt).toLocaleDateString()}
+                    <td className="text-sm text-muted font-mono">
+                      {new Date(app.createdAt).toLocaleDateString(undefined, { day: "2-digit", month: "short" })}
                     </td>
                     <td>
                       <div className="flex gap-8" style={{ justifyContent: "flex-end" }} onClick={(e) => e.stopPropagation()}>
@@ -274,68 +254,68 @@ export default function Applications() {
                   </tr>
                   {isExpanded && (
                     <tr key={`${app.jobId}-docs`}>
-                      <td colSpan={6} style={{ background: "var(--surface)", padding: 16 }}>
-                        <FilterReasons documents={app.documents} status={app.status} />
-                        {app.url && (
-                          <div style={{ marginBottom: 8 }}>
-                            <a href={app.url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-ghost">
-                              <ExternalLink size={14} /> Apply
-                            </a>
+                      <td colSpan={6} style={{ padding: 0 }}>
+                        <div className="app-inset">
+                          <div className="app-inset-grid">
+                            <AiVerdict documents={app.documents} />
+                            <div>
+                              <div className="detail-section-label">Documents</div>
+                              <div className="doc-list">
+                                {hasPdf && (
+                                  <div className="doc-item">
+                                    <span className="doc-type cv">CV</span>
+                                    cv_tailored.pdf
+                                    <a
+                                      href={api.applications.pdfUrl(app.jobId)}
+                                      className="doc-file"
+                                      onClick={(e) => {
+                                        window.open(api.applications.pdfUrl(app.jobId), "_blank");
+                                        e.preventDefault();
+                                      }}
+                                    >
+                                      Download
+                                    </a>
+                                  </div>
+                                )}
+                                {!hasPdf && (
+                                  <div className="text-sm text-muted">No documents generated yet.</div>
+                                )}
+                              </div>
+                              <div className="flex gap-8" style={{ marginTop: 12 }}>
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  onClick={() => handleGenerate(app, hasPdf)}
+                                  disabled={generating === app.jobId}
+                                >
+                                  {generating === app.jobId ? "Working…" : hasPdf ? "Regenerate" : "Create CV"}
+                                </button>
+                                {app.url && (
+                                  <a href={app.url} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ textDecoration: "none" }}>
+                                    <ExternalLink size={14} /> Open apply page
+                                  </a>
+                                )}
+                                <button
+                                  className="btn btn-sm btn-danger"
+                                  onClick={() => handleDelete(app.jobId)}
+                                >
+                                  <Trash2 size={14} /> Delete
+                                </button>
+                              </div>
+                              {genLogs.logs.length > 0 && genLogs.jobId === app.jobId && (
+                                <div className="log-panel" ref={logRef} style={{ maxHeight: 150, marginTop: 12 }}>
+                                  {genLogs.logs.map((msg, i) => (
+                                    <div key={i} className="log-line info"><span>{msg}</span></div>
+                                  ))}
+                                </div>
+                              )}
+                              {genDone && genLogs.jobId === app.jobId && (
+                                <div className="text-sm" style={{ marginTop: 4, color: "var(--success)" }}>
+                                  CV generated!
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        )}
-                        <div className="flex gap-8" style={{ marginBottom: 8 }}>
-                          {hasPdf ? (
-                            <>
-                              <span className="text-sm text-muted" style={{ alignSelf: "center" }}>
-                                CV ready
-                              </span>
-                              <a
-                                href={api.applications.pdfUrl(app.jobId)}
-                                className="btn btn-sm btn-success"
-                                download
-                                onClick={(e) => {
-                                  window.open(api.applications.pdfUrl(app.jobId), "_blank");
-                                  e.preventDefault();
-                                }}
-                              >
-                                <Download size={14} /> PDF
-                              </a>
-                              <button
-                                className="btn btn-sm btn-ghost"
-                                onClick={() => handleGenerate(app, true)}
-                                disabled={generating === app.jobId}
-                              >
-                                {generating === app.jobId ? "Regenerating..." : "Regenerate"}
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              className="btn btn-sm btn-primary"
-                              onClick={() => handleGenerate(app)}
-                              disabled={generating === app.jobId}
-                            >
-                              {generating === app.jobId ? "Generating..." : "Create CV"}
-                            </button>
-                          )}
-                          <button
-                            className="btn btn-sm btn-danger"
-                            onClick={() => handleDelete(app.jobId)}
-                          >
-                            <Trash2 size={14} /> Delete
-                          </button>
                         </div>
-                        {genLogs.logs.length > 0 && genLogs.jobId === app.jobId && (
-                          <div className="log-panel" ref={logRef} style={{ maxHeight: 150 }}>
-                            {genLogs.logs.map((msg, i) => (
-                              <div key={i} className="log-line info"><span>{msg}</span></div>
-                            ))}
-                          </div>
-                        )}
-                        {genDone && genLogs.jobId === app.jobId && (
-                          <div className="text-sm" style={{ marginTop: 4, color: "var(--success)" }}>
-                            CV generated!
-                          </div>
-                        )}
                       </td>
                     </tr>
                   )}

@@ -1,4 +1,4 @@
-export type TaskType = "discover-companies" | "discover-fetch-filter" | "sync-all-jobs" | "sync-company" | "normal-filter-batch" | "normal-filter-job" | "smart-filter-accepted" | "smart-filter-job" | "refetch-job" | "create-application" | "run-apply" | "detect-migration" | "ln-companies" | "ln-fetch-filter";
+export type TaskType = "discover-companies" | "discover-fetch-filter" | "sync-all-jobs" | "sync-company" | "normal-filter-batch" | "normal-filter-job" | "smart-filter-accepted" | "smart-filter-job" | "refetch-job" | "create-application" | "run-apply" | "detect-migration" | "ln-companies" | "ln-fetch-filter" | "daily-pipeline";
 export declare const REGISTERED_TASK_TYPES: readonly TaskType[];
 export type TaskStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 export interface EnqueueOptions {

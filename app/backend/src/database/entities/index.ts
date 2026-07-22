@@ -10,3 +10,4 @@ export { TaskRun } from "./task-run.entity";
 export { TaskRunLog } from "./task-run-log.entity";
 export { UserProfile } from "./user-profile.entity";
 export { UserAnswer } from "./user-answer.entity";
+export { CompanySnapshot } from "./company-snapshot.entity";

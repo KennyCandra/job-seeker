@@ -96,8 +96,10 @@ export class JobsService {
     );
   }
 
-  smartFilterAccepted(force?: boolean) {
-    return this.queue.enqueueTask("smart-filter-accepted", { force: Boolean(force) }, { force: Boolean(force), dedupeKey: "smart-filter-accepted" });
+  smartFilterAccepted(force?: boolean, limit?: number) {
+    const payload: { force: boolean; limit?: number } = { force: Boolean(force) };
+    if (limit != null) payload.limit = Number(limit);
+    return this.queue.enqueueTask("smart-filter-accepted", payload, { force: Boolean(force), dedupeKey: "smart-filter-accepted" });
   }
 
   filterJob(jobId: string) {

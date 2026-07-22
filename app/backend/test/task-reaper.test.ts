@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import { TaskReaperService } from "../src/tasks/task-reaper.service";
 import { listTasksQuerySchema } from "../src/common/dto";
 
-type RunRow = { id: string; bullJobId: string | null; status: string };
+type RunRow = { id: string; bullJobId: string | null; status: string; startedAt?: string | null };
 
 function makeReaper(opts: {
   running: RunRow[];
@@ -67,6 +67,27 @@ describe("TaskReaperService", () => {
     });
     await svc.onApplicationBootstrap();
     expect(errored.map((e) => e.id)).toEqual(["gone"]);
+  });
+
+  it("does NOT reap a run this worker started after boot (startedAt >= bootTime)", async () => {
+    // A run the boot-tick enqueued: startedAt is far in the future relative to
+    // the reaper's construction, so it belongs to this worker and is skipped
+    // even though its Bull job looks gone.
+    const { svc, errored } = makeReaper({
+      running: [{ id: "fresh", bullJobId: "bf", status: "running", startedAt: "2099-01-01T00:00:00.000Z" }],
+      jobState: { bf: null },
+    });
+    await svc.onApplicationBootstrap();
+    expect(errored.length).toBe(0);
+  });
+
+  it("reaps a genuinely-old stranded run (startedAt before boot) with a missing job", async () => {
+    const { svc, errored } = makeReaper({
+      running: [{ id: "old", bullJobId: "bo", status: "running", startedAt: "2000-01-01T00:00:00.000Z" }],
+      jobState: { bo: null },
+    });
+    await svc.onApplicationBootstrap();
+    expect(errored.map((e) => e.id)).toEqual(["old"]);
   });
 });
 

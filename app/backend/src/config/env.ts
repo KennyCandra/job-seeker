@@ -25,7 +25,35 @@ export const envSchema = z.object({
 
   POLL_INTERVAL_HOURS: z.coerce.number().nullish().default(null),
   DISCOVERY_INTERVAL_HOURS: z.coerce.number().nullish().default(null),
+
+  // Daily pipeline: sync-all -> snapshot -> smart filter, once per day.
+  // ENABLED turns on the hourly catch-up check (runs whenever the last
+  // successful pass is older than CATCHUP_HOURS — survives the machine being
+  // off at any fixed time). HOUR additionally schedules a fixed-time cron.
+  DAILY_PIPELINE_ENABLED: z
+    .string()
+    .default("false")
+    .transform((v) => v === "true"),
+  DAILY_PIPELINE_HOUR: z.coerce.number().int().min(0).max(23).nullish().default(null),
+  DAILY_PIPELINE_CATCHUP_HOURS: z.coerce.number().positive().default(20),
   DISCOVERY_PROVIDER: z.enum(["serpapi", "playwright"]).default("serpapi"),
+
+  // Smart-filter (LLM) throughput controls. Rather than running the LLM over the
+  // whole accepted pool in one unbounded task, each run processes at most
+  // SMART_FILTER_BATCH_LIMIT jobs (0 = unlimited, legacy behaviour). The drain
+  // interval enqueues one capped batch every N minutes until the backlog clears
+  // (0 = disabled; drive it manually or via the daily pipeline instead).
+  SMART_FILTER_BATCH_LIMIT: z.coerce.number().int().min(0).default(25),
+  SMART_FILTER_DRAIN_INTERVAL_MIN: z.coerce.number().int().min(0).default(0),
+
+  // Cheap AI pre-filter (triage) tier. Runs a small/cheap pass over jobs the
+  // deterministic filter accepted, sending PREFILTER_BATCH_SIZE jobs per LLM call
+  // (title + location + a short snippet only) so it's a fraction of the tokens of
+  // the full smart filter. PREFILTER_BATCH_LIMIT caps how many jobs one run
+  // triages (0 = unlimited). A "reject" here becomes the job's latest verdict and
+  // drops it from the expensive smart-filter pool automatically.
+  PREFILTER_BATCH_LIMIT: z.coerce.number().int().min(0).default(100),
+  PREFILTER_BATCH_SIZE: z.coerce.number().int().min(1).max(50).default(15),
 
   SERPAPI_KEY: z.string().optional(),
   SERP_API_KEY: z.string().optional(),

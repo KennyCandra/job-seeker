@@ -42,6 +42,34 @@ function parseArray(value: string | null): string[] {
 export class JobFiltersRepository {
   constructor(private readonly dataSource: DataSource) {}
 
+  /**
+   * Job ids eligible for the LLM smart filter: OPEN jobs whose latest filter
+   * verdict is "accept" and (unless force) that have no smart-filter result
+   * yet. One SQL pass — replaces the old per-job loop that silently capped at
+   * the 100 most recently updated jobs via jobs.getAll()'s default limit.
+   */
+  async getSmartFilterCandidateJobIds(force = false): Promise<string[]> {
+    const smartExclusion = force
+      ? ""
+      : `AND j.id NOT IN (
+           SELECT job_id FROM job_filters
+           WHERE prompt_version = 'smart-filter-v1' OR id LIKE 'smart-filter-%'
+         )`;
+    const rows = await this.dataSource.query(
+      `WITH latest AS (
+         SELECT DISTINCT ON (job_id) job_id, verdict
+         FROM job_filters
+         ORDER BY job_id, created_at DESC, id ASC
+       )
+       SELECT j.id
+       FROM jobs j
+       INNER JOIN latest lf ON lf.job_id = j.id AND lf.verdict = 'accept'
+       WHERE j.status = 'open' ${smartExclusion}
+       ORDER BY j.updated_at DESC`,
+    );
+    return rows.map((r: { id: string }) => r.id);
+  }
+
   async save(input: SaveJobFilterInput): Promise<void> {
     const now = input.createdAt || new Date().toISOString();
     await this.dataSource.query(

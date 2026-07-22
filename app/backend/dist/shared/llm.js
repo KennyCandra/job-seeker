@@ -30,6 +30,15 @@ class OpenCodeClient {
             timeoutMs: config.get("OPENCODE_TIMEOUT_MS", { infer: true }),
         });
     }
+    async isReachable(timeoutMs = 3000) {
+        try {
+            await fetch(this.baseUrl, { signal: AbortSignal.timeout(timeoutMs) });
+            return true;
+        }
+        catch {
+            return false;
+        }
+    }
     async completeJson(system, user) {
         const sessionId = await this.createSession();
         const body = {

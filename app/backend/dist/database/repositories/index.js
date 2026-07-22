@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RepositoriesModule = exports.ShortlistRepository = exports.SearchConfigRepository = exports.UserAnswersRepository = exports.UserProfileRepository = exports.ApplicationRunStepsRepository = exports.ApplicationRunsRepository = exports.ApplicationsRepository = exports.TaskRunLogsRepository = exports.TaskRunsRepository = exports.JobDocumentsRepository = exports.JobFiltersRepository = exports.JobsRepository = exports.CompaniesRepository = void 0;
+exports.RepositoriesModule = exports.CompanySnapshotsRepository = exports.ShortlistRepository = exports.SearchConfigRepository = exports.UserAnswersRepository = exports.UserProfileRepository = exports.ApplicationRunStepsRepository = exports.ApplicationRunsRepository = exports.ApplicationsRepository = exports.TaskRunLogsRepository = exports.TaskRunsRepository = exports.JobDocumentsRepository = exports.JobFiltersRepository = exports.JobsRepository = exports.CompaniesRepository = void 0;
 var companies_repository_1 = require("./companies.repository");
 Object.defineProperty(exports, "CompaniesRepository", { enumerable: true, get: function () { return companies_repository_1.CompaniesRepository; } });
 var jobs_repository_1 = require("./jobs.repository");
@@ -27,6 +27,8 @@ var search_config_repository_1 = require("./search-config.repository");
 Object.defineProperty(exports, "SearchConfigRepository", { enumerable: true, get: function () { return search_config_repository_1.SearchConfigRepository; } });
 var shortlist_repository_1 = require("./shortlist.repository");
 Object.defineProperty(exports, "ShortlistRepository", { enumerable: true, get: function () { return shortlist_repository_1.ShortlistRepository; } });
+var company_snapshots_repository_1 = require("./company-snapshots.repository");
+Object.defineProperty(exports, "CompanySnapshotsRepository", { enumerable: true, get: function () { return company_snapshots_repository_1.CompanySnapshotsRepository; } });
 var repositories_module_1 = require("./repositories.module");
 Object.defineProperty(exports, "RepositoriesModule", { enumerable: true, get: function () { return repositories_module_1.RepositoriesModule; } });
 //# sourceMappingURL=index.js.map

@@ -280,7 +280,12 @@ export default function Jobs() {
     <div className="jobs-layout">
       <div className="jobs-main">
         <div className="page-header">
-          <h1>Jobs</h1>
+          <div>
+            <h1>Jobs</h1>
+            <div className="page-subtitle">
+              {total} positions across {companies.length} companies.
+            </div>
+          </div>
           <div className="doc-actions">
             <button
               className="btn btn-primary btn-sm"
@@ -555,7 +560,7 @@ function FilterStatus({ verdict, score }: { verdict: string | null; score: numbe
   }
 
   const label = verdict === "accept" ? "accepted" : verdict === "reject" ? "rejected" : verdict || "filtered";
-  const scoreClass = score === null ? "score-mid" : score >= 80 ? "score-high" : score >= 65 ? "score-mid" : "score-low";
+  const scoreClass = score === null ? "score-mid" : score >= 90 ? "score-high" : score >= 80 ? "score-mid" : "score-low";
 
   return (
     <div className="filter-cell">
@@ -648,7 +653,7 @@ function JobDetailPanel({
         <div className="detail-section">
           <h3>Filter Result</h3>
           <div className="filter-summary">
-            <span className={`score-badge ${detail.latestFilter.score >= 80 ? "score-high" : detail.latestFilter.score >= 65 ? "score-mid" : "score-low"}`}>
+            <span className={`score-badge ${detail.latestFilter.score >= 90 ? "score-high" : detail.latestFilter.score >= 80 ? "score-mid" : "score-low"}`}>
               {detail.latestFilter.verdict} · {detail.latestFilter.score}
             </span>
             {detail.latestFilter.promptVersion === "smart-filter-v1" && (
@@ -681,7 +686,7 @@ function JobDetailPanel({
         <div className="detail-section">
           <h3>Smart Filter Result</h3>
           <div className="filter-summary">
-            <span className={`score-badge ${detail.latestSmartFilter.score >= 80 ? "score-high" : detail.latestSmartFilter.score >= 65 ? "score-mid" : "score-low"}`}>
+            <span className={`score-badge ${detail.latestSmartFilter.score >= 90 ? "score-high" : detail.latestSmartFilter.score >= 80 ? "score-mid" : "score-low"}`}>
               {detail.latestSmartFilter.verdict} · {detail.latestSmartFilter.score}
             </span>
             <span className="score-badge score-ai">AI</span>
@@ -870,7 +875,7 @@ function JobDetailPanel({
                   {blockersList.length > 0 && (
                     <div style={{ marginTop: 6, fontSize: 12 }}>
                       {blockersList.map((b, i) => (
-                        <div key={i} style={{ color: "var(--warning, #d97706)" }}>⚠ {b}</div>
+                        <div key={i} style={{ color: "var(--warn)" }}>⚠ {b}</div>
                       ))}
                     </div>
                   )}
@@ -911,7 +916,7 @@ function JobDetailPanel({
                   )}
 
                   {summary.submitFound && applyRun.run.status !== "failed" && (
-                    <div className="apply-safety-banner" style={{ marginTop: 8, padding: "6px 10px", background: "rgba(239,68,68,0.1)", borderRadius: 6, border: "1px solid rgba(239,68,68,0.3)", fontSize: 12 }}>
+                    <div className="apply-safety-banner" style={{ marginTop: 8, padding: "6px 10px", background: "#f7ecec", borderRadius: 6, border: "1px solid rgba(192,85,85,0.3)", fontSize: 12, color: "var(--danger)" }}>
                       <strong>Stopped before submit</strong> — review the application form, then submit manually.
                     </div>
                   )}

@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
 import { api, type SavedJob } from "../api";
+import { Search } from "lucide-react";
 
 export default function SavedJobs() {
-  const [jobs, setJobs] = useState<SavedJob[]>([]);
+  const [allJobs, setAllJobs] = useState<SavedJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [groupByCompany, setGroupByCompany] = useState(false);
+  const [search, setSearch] = useState("");
   const [filtering, setFiltering] = useState<string | null>(null);
   const [filterMsg, setFilterMsg] = useState<{ jobId: string; text: string; ok: boolean } | null>(null);
 
   const load = () => {
     setLoading(true);
-    api.savedJobs.list().then(setJobs).catch(console.error).finally(() => setLoading(false));
+    api.savedJobs.list().then(setAllJobs).catch(console.error).finally(() => setLoading(false));
   };
 
   useEffect(load, []);
@@ -33,6 +35,14 @@ export default function SavedJobs() {
     }
   };
 
+  const jobs = search.trim()
+    ? allJobs.filter(
+        (j) =>
+          j.title?.toLowerCase().includes(search.toLowerCase()) ||
+          j.companySlug?.toLowerCase().includes(search.toLowerCase()),
+      )
+    : allJobs;
+
   const displayed = groupByCompany
     ? jobs.reduce<Record<string, SavedJob[]>>((acc, j) => {
         const key = j.companySlug;
@@ -45,13 +55,20 @@ export default function SavedJobs() {
   return (
     <div>
       <div className="page-header">
-        <h1>Saved Jobs</h1>
+        <div>
+          <h1>Saved Jobs</h1>
+          <div className="page-subtitle">{allJobs.length} jobs saved for filtering and review.</div>
+        </div>
         <div className="flex gap-8 items-center">
           {filterMsg && (
             <span className={`text-sm ${filterMsg.ok ? "text-muted" : ""}`} style={{ color: filterMsg.ok ? "var(--success)" : "var(--danger)" }}>
               {filterMsg.text}
             </span>
           )}
+          <div className="search-input-wrap" style={{ width: 220 }}>
+            <Search size={14} />
+            <input placeholder="Search title, company…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
           <label className="text-sm text-muted" style={{ cursor: "pointer" }}>
             <input
               type="checkbox"

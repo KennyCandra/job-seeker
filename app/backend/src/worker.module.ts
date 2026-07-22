@@ -16,6 +16,7 @@ import { FilterWorkerModule } from "./filter/filter.worker.module";
 import { DiscoveryWorkerModule } from "./discovery/discovery.worker.module";
 import { ApplicationsWorkerModule } from "./applications/applications.worker.module";
 import { ApplyWorkerModule } from "./apply/apply.worker.module";
+import { PipelineWorkerModule } from "./pipelines/pipeline.worker.module";
 import { SchedulerModule } from "./scheduler/scheduler.module";
 
 @Module({
@@ -37,6 +38,7 @@ import { SchedulerModule } from "./scheduler/scheduler.module";
     DiscoveryWorkerModule,
     ApplicationsWorkerModule,
     ApplyWorkerModule,
+    PipelineWorkerModule,
     SchedulerModule,
   ],
 })

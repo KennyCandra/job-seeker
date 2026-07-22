@@ -4,6 +4,8 @@ import { ApplicationsRepository } from "../src/database/repositories/application
 import { TaskRunsRepository } from "../src/database/repositories/task-runs.repository";
 import { TaskRunLogsRepository } from "../src/database/repositories/task-run-logs.repository";
 import { ApplicationRunStepsRepository } from "../src/database/repositories/application-run-steps.repository";
+import { JobFiltersRepository } from "../src/database/repositories/job-filters.repository";
+import { CompanySnapshotsRepository } from "../src/database/repositories/company-snapshots.repository";
 import type { DataSource } from "typeorm";
 
 /**
@@ -323,5 +325,67 @@ describe("ApplicationRunStepsRepository", () => {
     const call = (ds as any).calls[0];
     expect(call.sql).toContain('screenshot_path AS "screenshotPath"');
     expect(call.sql).not.toContain("SELECT *");
+  });
+});
+
+describe("JobFiltersRepository.getSmartFilterCandidateJobIds", () => {
+  it("selects open, latest-accept jobs and excludes already-smart-filtered when not forced", async () => {
+    const ds = makeDataSource([() => [{ id: "job_1" }]]);
+    const repo = new JobFiltersRepository(ds as any);
+    const ids = await repo.getSmartFilterCandidateJobIds(false);
+    expect(ids).toEqual(["job_1"]);
+    const call = (ds as any).calls[0];
+    expect(call.sql).toContain("j.status = 'open'");
+    expect(call.sql).toContain("DISTINCT ON (job_id)");
+    expect(call.sql).toContain("NOT IN");
+    expect(call.sql).toContain("lf.verdict = 'accept'");
+  });
+
+  it("drops the smart-filter exclusion when forced", async () => {
+    const ds = makeDataSource([() => []]);
+    const repo = new JobFiltersRepository(ds as any);
+    await repo.getSmartFilterCandidateJobIds(true);
+    const call = (ds as any).calls[0];
+    expect(call.sql).not.toContain("NOT IN");
+    expect(call.sql).toContain("j.status = 'open'");
+  });
+});
+
+describe("CompanySnapshotsRepository", () => {
+  it("upsertForDate upserts per company/date using the date prefix of jobs timestamps", async () => {
+    const ds = makeDataSource([() => [{ id: "1" }, { id: "2" }]]);
+    const repo = new CompanySnapshotsRepository(ds as any);
+    const n = await repo.upsertForDate("2026-07-19");
+    expect(n).toBe(2);
+    const call = (ds as any).calls[0];
+    expect(call.sql).toContain("ON CONFLICT (company_id, snapshot_date)");
+    expect(call.sql).toContain("LEFT(j.first_seen_at, 10) = $1");
+    expect(call.sql).toContain("LEFT(j.closed_at, 10) = $1");
+    expect(call.params[0]).toBe("2026-07-19"); // $1 date
+    expect(typeof call.params[1]).toBe("string"); // $2 created_at ISO
+  });
+
+  it("getByCompany aliases columns and never SELECT *", async () => {
+    const ds = makeDataSource([() => []]);
+    const repo = new CompanySnapshotsRepository(ds as any);
+    await repo.getByCompany(7);
+    const call = (ds as any).calls[0];
+    expect(call.sql).toContain('open_count AS "openCount"');
+    expect(call.sql).not.toContain("SELECT *");
+    expect(call.params[0]).toBe(7);
+  });
+});
+
+describe("TaskRunsRepository.getRecentCompletedByType", () => {
+  it("filters to completed of the type with aliased columns", async () => {
+    const ds = makeDataSource([() => []]);
+    const repo = new TaskRunsRepository(ds as any);
+    await repo.getRecentCompletedByType("daily-pipeline", 20);
+    const call = (ds as any).calls[0];
+    expect(call.sql).toContain("status = 'completed'");
+    expect(call.sql).toContain('result_json AS "resultJson"');
+    expect(call.sql).not.toContain("SELECT *");
+    expect(call.params[0]).toBe("daily-pipeline");
+    expect(call.params[1]).toBe(20);
   });
 });

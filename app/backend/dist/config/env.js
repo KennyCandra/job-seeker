@@ -24,6 +24,12 @@ exports.envSchema = zod_1.z.object({
         .transform((v) => v === "true"),
     POLL_INTERVAL_HOURS: zod_1.z.coerce.number().nullish().default(null),
     DISCOVERY_INTERVAL_HOURS: zod_1.z.coerce.number().nullish().default(null),
+    DAILY_PIPELINE_ENABLED: zod_1.z
+        .string()
+        .default("false")
+        .transform((v) => v === "true"),
+    DAILY_PIPELINE_HOUR: zod_1.z.coerce.number().int().min(0).max(23).nullish().default(null),
+    DAILY_PIPELINE_CATCHUP_HOURS: zod_1.z.coerce.number().positive().default(20),
     DISCOVERY_PROVIDER: zod_1.z.enum(["serpapi", "playwright"]).default("serpapi"),
     SERPAPI_KEY: zod_1.z.string().optional(),
     SERP_API_KEY: zod_1.z.string().optional(),

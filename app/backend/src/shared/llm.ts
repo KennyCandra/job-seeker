@@ -40,6 +40,19 @@ export class OpenCodeClient {
     });
   }
 
+  /**
+   * Cheap liveness probe: any HTTP response from the base URL means the
+   * OpenCode server is up; only a network/timeout error means it is not.
+   */
+  async isReachable(timeoutMs = 3000): Promise<boolean> {
+    try {
+      await fetch(this.baseUrl, { signal: AbortSignal.timeout(timeoutMs) });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async completeJson(system: string, user: string): Promise<string> {
     const sessionId = await this.createSession();
     const body: Record<string, unknown> = {
